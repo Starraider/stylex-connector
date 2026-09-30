@@ -1,0 +1,32 @@
+plugin.tx_stylexconnector {
+    settings {
+        # cat=stylex_connector/basic/10; type=string; label=StyleX CSS file path (Vite output)
+        # Leave empty if using <vite:asset> in Fluid templates directly.
+        # Use an absolute web path or EXT: path if loading CSS via TypoScript.
+        # Example: /typo3temp/assets/vite/assets/Main.entry-abc123.css
+        cssFilePath =
+
+        # cat=stylex_connector/basic/20; type=boolean; label=Include CSS via TypoScript
+        # Set to 1 to include StyleX CSS via TypoScript instead of <vite:asset> in templates.
+        # Set to 0 if your Fluid layout already uses <vite:asset> (recommended).
+        includeCssViaTypoScript = 0
+
+        # cat=stylex_connector/basic/30; type=boolean; label=Declare CSS @layer ordering
+        # Adds @layer bootstrap, stylex, overrides; to the head of the StyleX CSS.
+        # Only relevant when Bootstrap is also loaded.
+        declareCssLayers = 0
+
+        # cat=stylex_connector/basic/40; type=integer; label=StyleX CSS include priority
+        # Higher priority = loaded later in the HTML head. Bootstrap is typically 10-50.
+        # Set to 60 to ensure StyleX loads after Bootstrap.
+        cssPriority = 60
+
+        # cat=stylex_connector/basic/50; type=integer; label=Bootstrap CSS include priority
+        # Only used when overrideBootstrapPriority = 1.
+        bootstrapCssPriority = 40
+
+        # cat=stylex_connector/advanced/10; type=boolean; label=Override Bootstrap priority
+        # When 1, the connector adjusts Bootstrap CSS priority so StyleX loads after it.
+        overrideBootstrapPriority = 0
+    }
+}

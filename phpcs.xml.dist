@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<ruleset name="Extension supplemental PHPCS check">
+  <description>PSR-12 supplemental check.</description>
+  <file>Classes</file>
+  <file>Configuration</file>
+  <file>Tests</file>
+  <arg name="extensions" value="php"/>
+  <rule ref="PSR12"/>
+</ruleset>

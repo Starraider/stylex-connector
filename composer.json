@@ -1,0 +1,55 @@
+{
+    "name": "skom/stylex-connector",
+    "description": "Bridges StyleX build-time CSS authoring with TYPO3 Fluid templates.",
+    "license": "GPL-2.0-or-later",
+    "type": "typo3-cms-extension",
+    "keywords": ["typo3", "stylex", "css", "fluid", "viewhelper"],
+    "homepage": "https://github.com/Starraider/stylex-connector",
+    "support": {
+        "issues": "https://github.com/Starraider/stylex-connector/issues",
+        "source": "https://github.com/Starraider/stylex-connector"
+    },
+    "authors": [
+        {
+            "name": "Sven Kalbhenn",
+            "email": "sven@skom.de"
+        }
+    ],
+    "require": {
+        "php": "^8.1 || ^8.2 || ^8.3 || ^8.4",
+        "typo3/cms-core": "^12.4 || ^13.4 || ^14.0",
+        "typo3/cms-fluid": "^12.4 || ^13.4 || ^14.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.0 || ^11.0",
+        "typo3/testing-framework": "^8.0"
+    },
+    "suggest": {
+        "bk2k/bootstrap-package": "When using Bootstrap Package alongside StyleX.",
+        "praetorius/vite-asset-collector": "For Vite-based asset management in TYPO3."
+    },
+    "provide": {
+        "vendor/stylex-connector": "self.version"
+    },
+    "autoload": {
+        "psr-4": {
+            "Vendor\\StylexConnector\\": "Classes/",
+            "Skom\\StylexConnector\\": "Classes/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Vendor\\StylexConnector\\Tests\\": "Tests/",
+            "Skom\\StylexConnector\\Tests\\": "Tests/"
+        }
+    },
+    "extra": {
+        "typo3/cms": {
+            "extension-key": "stylex_connector",
+            "version": "1.0.0",
+            "Package": {
+                "providesPackages": {}
+            }
+        }
+    }
+}

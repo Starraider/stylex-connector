@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff version="1.0">
+  <file datatype="plaintext" original="" source-language="en" date="2026-09-26">
+    <body>
+      <trans-unit id="extconf.manifestPath">
+        <source>Fallback manifest path (EXT: or absolute). Used if no sitepackage calls StylexRegistry::registerManifest().</source>
+      </trans-unit>
+      <trans-unit id="extconf.enableCssLayers">
+        <source>Enable CSS @layer declarations via TypoScript (recommended with Bootstrap).</source>
+      </trans-unit>
+      <trans-unit id="extconf.overrideBootstrapSpecificity">
+        <source>Load StyleX CSS after Bootstrap CSS to ensure StyleX overrides win.</source>
+      </trans-unit>
+      <trans-unit id="extconf.warnOnMissingKeys">
+        <source>Warn (PHP E_USER_WARNING) when an unknown style key is used in a Fluid template (development context only).</source>
+      </trans-unit>
+      <trans-unit id="extconf.manifestCacheLifetime">
+        <source>Manifest cache lifetime in seconds (0 = no caching, e.g. for development). Default: 86400 (24 hours).</source>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

@@ -1,0 +1,29 @@
+services:
+  _defaults:
+    autowire: true
+    autoconfigure: true
+    public: false
+
+  # Scan all classes in the Classes/ directory
+  Vendor\StylexConnector\:
+    resource: '../Classes/*'
+
+  # Make StylexManifestService public so it can be retrieved via
+  # GeneralUtility::makeInstance() and injected into ViewHelpers
+  Vendor\StylexConnector\Service\StylexManifestService:
+    public: true
+    shared: true # Singleton: manifest is loaded once per request
+
+  # ViewHelper must be public for Fluid's DI resolution
+  Vendor\StylexConnector\ViewHelpers\ClassViewHelper:
+    public: true
+    shared: false # New instance per ViewHelper call (stateless render)
+
+  # Aliases for Skom\StylexConnector namespace
+  Skom\StylexConnector\Service\StylexManifestService:
+    alias: Vendor\StylexConnector\Service\StylexManifestService
+    public: true
+
+  Skom\StylexConnector\ViewHelpers\ClassViewHelper:
+    alias: Vendor\StylexConnector\ViewHelpers\ClassViewHelper
+    public: true

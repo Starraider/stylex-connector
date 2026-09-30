@@ -1,0 +1,350 @@
+What is StyleX?
+===============
+
+StyleX is a compile-time CSS-in-JS library developed by Meta (Facebook) and deployed in high-scale production applications including Facebook, Instagram, WhatsApp, and Threads. It is completely framework-agnostic and open source.
+
+The Core Concept
+----------------
+
+Instead of writing CSS classes or SCSS selector trees, you author styles using typed JavaScript objects. A build-time compiler (via Babel or unplugin/Vite) transforms these objects into **atomic CSS rules**. Exactly one CSS class per unique CSS property-value combination. It replaces the JavaScript style references with pre-calculated class name strings.
+
+There is **zero runtime style injection** in the browser. The output is a standard static ``.css`` file.
+
+.. code-block:: javascript
+
+   // What you write (Nav.stylex.js):
+   import * as stylex from '@stylexjs/stylex';
+   import { colors, spacing } from './tokens.stylex.js';
+
+   export const styles = stylex.create({
+     link: {
+       color: colors.bodyText,
+       padding: spacing.md,
+       borderRadius: '4px',
+     },
+     active: {
+       color: colors.primary,
+       fontWeight: 'bold',
+     },
+   });
+
+.. code-block:: css
+
+   /* What StyleX emits into the compiled CSS bundle: */
+   .x1a2b3 { color: #212529; }
+   .x4c5d6 { padding: 1rem; }
+   .x7e8f9 { border-radius: 4px; }
+   .x9g0h1 { color: #ff8700; }
+   .x2i3j4 { font-weight: 700; }
+
+When two styles are composed (e.g. ``link`` and ``active``), both define ``color``. StyleX resolves the conflict at build time (or in PHP via the StyleX Connector) using a deterministic rule: **the last style applied wins**.
+
+.. note::
+
+   For the connector's manifest loading and class resolution, see
+   :ref:`architecture`.
+
+Core Advantages of StyleX
+=========================
+
+Deterministic, Conflict-Free Styling
+------------------------------------
+
+* **The Problem with Traditional CSS/SCSS:** The cascade and specificity create implicit ordering dependencies. Adding a class in one SCSS file can unexpectedly override or be overridden by rules in another file based purely on stylesheet order or selector specificity. Furthermore, developers and AI coding assistants alike frequently fail to take the load or bundling order of separate CSS/SCSS files into account, leading to component styles that are quietly and unintentionally overridden by other styles.
+* **What StyleX Solves:** Every CSS property maps to an atomic class with identical specificity (a single class selector). When two style definitions declare conflicting values for the same property, the last applied style strictly wins. Import order and stylesheet load order no longer dictate which rule applies, completely eliminating specificity battles, silent cascade overrides, and ``!important`` hacks.
+
+Atomic CSS — Logarithmic Growth
+-------------------------------
+
+* **The Problem with Traditional CSS:** In traditional SCSS/CSS architectures, as the number of site components grows, the size of the CSS bundle increases linearly. A site with 60 content elements can easily exceed hundreds of kilobytes of redundant CSS.
+* **What StyleX Solves:** Atomic CSS deduplicates every CSS declaration across the entire project. If 40 components use ``padding: 1rem;`` or ``border-radius: 4px;``, exactly **one** CSS rule is generated in the bundle.
+* **Result:** While traditional CSS grows linearly (``O(n)``), StyleX bundle growth flattens logarithmically (``O(log n)``) because the number of distinct property-value combinations in a design system is naturally bounded.
+
+.. code-block:: text
+
+   Traditional SCSS:    10 components  ->  12 KB CSS
+                        50 components  ->  60 KB CSS
+                       100 components  -> 120 KB CSS (linear growth)
+
+   StyleX Atomic CSS:   10 components  ->   5 KB CSS
+                        50 components  ->   9 KB CSS
+                       100 components  ->  11 KB CSS (logarithmic growth)
+
+Typed, Centralized Design Token System (``defineVars``)
+--------------------------------------------------------
+
+* **The Problem Today:** Design values (colors, spacing, typography) are often duplicated across SCSS variables, Bootstrap variables, TypoScript constants, and inline styles. Changing a brand color requires synchronizing multiple files.
+* **What StyleX Solves:** Design tokens are authored once using ``stylex.defineVars()``:
+
+.. code-block:: javascript
+
+   // tokens.stylex.js — Single Source of Truth
+   import * as stylex from '@stylexjs/stylex';
+
+   export const colors = stylex.defineVars({
+     primary: '#ff8700',
+     primarySubtle: '#ffcc99',
+     bodyText: '#212529',
+     surface: '#ffffff',
+   });
+
+   export const spacing = stylex.defineVars({
+     sm: '0.5rem',
+     md: '1rem',
+     lg: '1.5rem',
+   });
+
+* **Compiled Output:** StyleX transforms this into globally available CSS Custom Properties:
+
+.. code-block:: css
+
+   :root {
+     --colors-primary: #ff8700;
+     --colors-primarySubtle: #ffcc99;
+     --colors-bodyText: #212529;
+     --colors-surface: #ffffff;
+     --spacing-sm: 0.5rem;
+     --spacing-md: 1rem;
+     --spacing-lg: 1.5rem;
+   }
+
+Any typo in token usage is caught at **compile time** by JavaScript/TypeScript, never failing silently in the browser.
+
+Dead Style Elimination
+----------------------
+
+Because all style rules are imported and referenced as ES modules in JavaScript, bundlers like Vite and Rollup can automatically tree-shake unused ``.stylex.js`` files or unreferenced style exports. Removing a TYPO3 component or retiring an obsolete element automatically removes its CSS from the production bundle.
+
+Style Encapsulation Without a Component Framework
+-------------------------------------------------
+
+In vanilla CSS/SCSS, avoiding unintended leaks requires strict BEM naming conventions (``.c-card__title--featured``) or CSS modules. StyleX classes are content-hashed and scoped to their authoring module. Styles in ``Nav.stylex.js`` cannot accidentally bleed into ``Footer.stylex.js``.
+
+Conditional Styling via Pure Logic
+----------------------------------
+
+Conditional styles do not require brittle class-string concatenations. With ``EXT:stylex_connector``, conditional styling in Fluid templates is declarative:
+
+.. code-block:: html
+
+   <f:link.page
+       class="{stylex:class(styles: 'Nav.link', when: {isActive: 'Nav.active'})}"
+       pageUid="{item.data.uid}"
+   >
+       {item.title}
+   </f:link.page>
+
+The ViewHelper resolves ``'Nav.link'`` and, if the template variable ``isActive`` evaluates to true, layers ``'Nav.active'`` on top, cleanly overriding conflicting properties.
+
+CSS Layers (``@layer``) — Taming Specificity
+---------------------------------------------
+
+StyleX supports native CSS Cascade Layers (``useCSSLayers: true``), grouping atomic classes inside ``@layer stylex``. When third-party frameworks like Bootstrap are also compiled into layers, an initial declaration:
+
+.. code-block:: css
+
+   @layer bootstrap, stylex, overrides;
+
+guarantees that StyleX styles override Bootstrap without requiring higher selector specificity or ``!important``.
+
+However, in many projects (including standard TYPO3 setups), Bootstrap is loaded **unlayered** (via CDN or standard JS bundle import). In CSS Cascade Level 5, unlayered styles take precedence over layered styles (``Unlayered > Layered``). To handle this, StyleX provides a powerful alternative: **disabling CSS layers** (``useCSSLayers: false``).
+
+When ``useCSSLayers: false``, the StyleX compiler automatically appends a ``:not(#\#)`` pseudo-class selector to every atomic class (e.g. ``.x1a2b3:not(#\#)``). This bumps the selector specificity from (0,1,0) to (0,2,0), allowing StyleX atomic rules to cleanly override Bootstrap's unlayered element or single-class rules without cascade layers.
+
+Future-Proof Architecture (Headless Ready)
+-------------------------------------------
+
+If a TYPO3 project transitions toward a hybrid or headless architecture (e.g. TYPO3 headless with React, Next.js, Vue, or Web Components), the ``.stylex.js`` source files can be used directly by those frontend frameworks without rewriting a single line of CSS.
+
+StyleX Compared to Bootstrap CSS
+================================
+
+Bootstrap provides a comprehensive UI kit and 12-column grid. StyleX is an authoring system, not a component library.
+
+.. list-table::
+   :header-rows: 1
+
+   * - Dimension
+     - Bootstrap CSS
+     - StyleX
+   * - **Paradigm**
+     - Pre-built utility classes & component CSS
+     - Compile-time atomic CSS-in-JS
+   * - **Specificity**
+     - Deep selector chains (``.navbar-expand-lg .navbar-nav .nav-link``)
+     - Flat atomic selectors with ``:not(#\#)`` bump (``.x1abc:not(#\#)``)
+   * - **Bundle Size**
+     - Full bundle shipped (~30-60 KB min+gz)
+     - Only used property-value rules emitted
+   * - **Custom Overrides**
+     - Requires fighting the cascade or using ``!important``
+     - Deterministic property override + Specificity Bump
+   * - **Tokens**
+     - SCSS variable overrides
+     - Typed ``defineVars()`` generating CSS Custom Properties
+
+Possible Coexistence in TYPO3
+-----------------------------
+
+Bootstrap provides the responsive layout grid and JavaScript components (modals, collapse). StyleX powers custom components and design system styling, overriding Bootstrap visual styles cleanly either via ``:not(#\#)`` specificity bumping (``useCSSLayers: false``) or via ``@layer`` when Bootstrap is layered.
+
+StyleX Compared to Tailwind CSS
+===============================
+
+Tailwind CSS uses utility classes in HTML markup (``class="flex items-center gap-4 bg-orange-500"``). StyleX defines styles in JavaScript objects and applies atomic classes through compiled references.
+
+.. list-table::
+   :header-rows: 1
+
+   * - Feature
+     - Tailwind CSS
+     - StyleX
+   * - **HTML Markup**
+     - Long, verbose class attribute strings
+     - Clean template attributes (``styles: 'Button.primary'``)
+   * - **Conflict Resolution**
+     - Depends on stylesheet generation order
+     - Deterministic: last argument strictly wins
+   * - **Design Constraint**
+     - Arbitrary values easy to slip in (``bg-[#ff8700]``)
+     - Static build enforcement against token definitions
+   * - **CSS Purging**
+     - Regex-based source file scanning (safelisting needed)
+     - Native module graph tree-shaking
+   * - **Typing**
+     - Editor extensions (Tailwind CSS IntelliSense)
+     - Native TypeScript / JavaScript type safety
+
+The Astryx Design System
+========================
+
+`Astryx <https://github.com/facebook/astryx>`_ is Meta’s open-source design system built on StyleX. It provides over 170 accessible, themeable components used internally across Meta products.
+
+Because Astryx is authored entirely in StyleX, its design tokens, color ramps, and atomic CSS share the exact same compiler pipeline as custom StyleX code. For TYPO3, Astryx tokens can serve as the design token baseline in ``tokens.stylex.js``, unifying custom Fluid components with Meta's production-tested accessibility and dark-mode foundation.
+
+StyleX and AI / LLM-Assisted Development
+========================================
+
+Modern development workflows increasingly leverage AI coding assistants (Cursor, Claude, Codex, GitHub Copilot). StyleX delivers substantially higher accuracy and fewer hallucinations when generated by LLMs:
+
+1. **Typed Objects vs. Hallucinated Strings:** In Tailwind or Bootstrap, an LLM might generate plausible-looking but non-existent class strings (such as ``bg-blue-6000`` or ``text-primary-semibold``). StyleX styles are typed JavaScript objects; invalid properties fail at build time.
+2. **Constrained Solution Space:** When an AI assistant reads ``tokens.stylex.js``, it is constrained to valid token properties (``colors.primary``, ``spacing.lg``), preventing design system drift.
+3. **Natural Context Co-location:** A single component's styling lives entirely within its ``.stylex.js`` file, fitting cleanly within an LLM's context window.
+4. **Predictable Logic:** The rule that "the second argument overrides conflicting properties of the first" is easy for LLMs to reason about mathematically without simulating the browser CSS cascade.
+5. **Immunity to CSS/SCSS Load-Order Blindness:** LLMs typically generate styles in component isolation and notoriously struggle to anticipate the implicit load, import, or concatenation order of CSS/SCSS files across a project. In traditional stylesheets, an LLM frequently produces selectors that look correct in isolation but are quietly and unintentionally overridden by rules from other stylesheets loaded later in the document head or build sequence. With StyleX's atomic architecture and flat specificity, load order does not dictate style precedence. Conflicts are resolved deterministically at the call site (``stylex.props()`` / ``{stylex:class()}``), ensuring LLM-generated component styles render as intended without accidental cascade overrides.
+
+AI Agent Workflows & typo3-stylex Skill
+---------------------------------------
+
+When working with an AI agent or coding assistant (such as Antigravity, Cursor, or Claude Code), installing the ``typo3-stylex`` Skill can be useful. It provides the agent with dedicated instructions, best practices, and integration workflows for installing, configuring, and verifying ``skom/stylex-connector``, Vite asset pipelines, and atomic styling in TYPO3.
+
+The ``typo3-stylex`` Skill can be found in the `ai-typo3-integrator-plugin <https://github.com/Starraider/ai-typo3-integrator-plugin>`_ at the following URL:
+https://github.com/Starraider/ai-typo3-integrator-plugin/tree/main/skills/typo3-stylex
+
+
+StyleX Benefits for TYPO3 Content Blocks
+========================================
+
+The **TYPO3 Content Blocks** initiative (``friendsoftypo3/content-blocks`` / TYPO3 Core Content Blocks in v14) provides a declarative, directory-based format for structuring custom content elements. While Content Blocks conventionally loads individual ``frontend.css`` files via ``<f:asset.css>``, combining Content Blocks with StyleX via ``EXT:stylex_connector`` elevates the architecture to enterprise-grade web performance.
+
+Zero Extra HTTP Requests & Single Atomic Bundle
+------------------------------------------------
+
+In traditional Content Block development, every distinct content element placed on a page registers its own stylesheet using:
+
+.. code-block:: html
+
+   <f:asset.css identifier="cb-quote" href="{cb:assetPath()}/frontend.css" />
+
+On a content-rich landing page featuring 8 distinct Content Blocks (Hero, Teasers, Accordion, Quote, Gallery, CTA, Timeline, Form), the browser receives 8 additional ``<link rel="stylesheet">`` tags in the document ``<head>``, creating a fragmented network waterfall.
+
+**The StyleX Advantage:**
+
+* StyleX compiles all Content Block ``.stylex.js`` files into the sitepackage's central atomic CSS bundle at build time.
+* The Content Block's ``templates/frontend.fluid.html`` references styles via ``{stylex:class(styles: 'Quote.root')}`` without any ``<f:asset.css>`` call.
+* **Result:** **Zero extra HTTP requests per content element**, maximizing Core Web Vitals (LCP, FCP).
+
+Logarithmic CSS Scaling Across 50+ Custom Elements
+---------------------------------------------------
+
+In conventional SCSS/CSS architectures, as an agency or enterprise site grows from 10 to 60+ custom Content Blocks, total CSS volume increases linearly (``O(N)``). Multiple Content Blocks declare repetitive rules:
+
+* Card, Testimonial, and Teaser all define ``padding: 1.5rem;``
+* Hero, Banner, and FeatureGrid all define ``display: flex; align-items: center;``
+* Multiple buttons across different blocks define identical border radii and transitions.
+
+**The StyleX Advantage:**
+
+* Atomic CSS generates **exactly one atomic utility class** per unique CSS declaration across the entire project.
+* A site with 60 Content Blocks generates nearly the same atomic CSS bundle size as a site with 15 blocks (``O(log N)`` growth curve).
+* Adding new Content Blocks incurs negligible CSS payload overhead.
+
+Strict Brand & Design Token Adherence
+-------------------------------------
+
+Independent Content Block CSS files are notorious for design drift: developers copy-paste arbitrary hex colors (``#1a73e8``), custom paddings (``18px``), and inconsistent font sizes into separate ``frontend.css`` files.
+
+**The StyleX Advantage:**
+
+* Content Blocks import typed design tokens directly from the sitepackage:
+
+  .. code-block:: javascript
+
+     import * as stylex from '@stylexjs/stylex';
+     import { colors, spacing, typography } from '../../../../Resources/Private/JavaScript/DesignSystem/tokens.stylex.js';
+
+     export const styles = stylex.create({
+       root: {
+         backgroundColor: colors.surface,
+         padding: spacing.lg,
+         borderRadius: spacing.radiusMd,
+       },
+       title: {
+         fontFamily: typography.fontSans,
+         fontSize: typography.sizeXl,
+         color: colors.primary,
+       },
+     });
+
+* **Compile-Time Validation:** Any mistyped token (``colors.primry``) or invalid CSS property is flagged immediately during ``npm run build`` or ``ddev vite``.
+* **Instant Rebranding:** Updating a single token in ``tokens.stylex.js`` automatically propagates across all 50+ Content Blocks across the site.
+
+Deterministic Variant Composition in Fluid
+------------------------------------------
+
+Content Blocks frequently provide backend select boxes or checkboxes for visual variants (e.g. background theme, highlighted state, alignment).
+
+In traditional CSS, this requires fragile string concatenation:
+
+.. code-block:: html
+
+   <div class="cb-card {f:if(condition: isFeatured, then: 'cb-card--featured')} {f:if(condition: isDark, then: 'cb-card--dark')}">
+
+This pattern frequently breaks down when ``.cb-card--featured`` and ``.cb-card--dark`` fight over the same CSS properties (e.g. ``border-color`` or ``color``) because selector specificity and declaration order in the CSS file dictate the winner.
+
+**The StyleX Advantage:**
+
+* Handled cleanly via the connector's Fluid ViewHelper:
+
+  .. code-block:: html
+
+     <div class="{stylex:class(
+         styles: 'Card.root',
+         when: {isFeatured: 'Card.featured', isDark: 'Card.dark'}
+     )}">
+
+* The PHP ``StylexManifestService`` resolves property collisions deterministically: **the last active style strictly wins** on a per-property level. There are no class collision bugs or specificity fights.
+
+Coexistence with Third-Party & Vendor Content Blocks
+----------------------------------------------------
+
+Projects do not have to rewrite every Content Block into StyleX:
+
+* **Custom In-House Blocks:** Authored in StyleX for maximum performance and token integration.
+* **Third-Party / Marketplace Blocks:** Load their pre-compiled ``frontend.css`` files cleanly isolated within CSS Cascade Layers (``@layer vendor-blocks, stylex;``).
+* Sitepackage StyleX utility classes can deterministically override vendor Content Block styling when customized branding is required, without resorting to ``!important``.
+
+.. tip::
+
+   For Vite glob discovery and migration guidance, see
+   :ref:`content-blocks-integration`.

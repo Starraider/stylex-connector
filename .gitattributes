@@ -1,0 +1,13 @@
+# Default line endings
+* text=auto eol=lf
+
+# Paths to ignore when exporting an archive
+/.github                export-ignore
+/Tests                  export-ignore
+/Documentation-GENERATED-temp export-ignore
+/.gitattributes         export-ignore
+/.gitignore             export-ignore
+/.editorconfig          export-ignore
+/phpstan.neon.dist      export-ignore
+/phpcs.xml.dist         export-ignore
+/phpunit.xml.dist       export-ignore

@@ -1,0 +1,15 @@
+<guides xmlns="https://www.phpdoc.org/guides"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="https://www.phpdoc.org/guides https://raw.githubusercontent.com/phpDocumentor/guides/master/packages/guides-cli/resources/schema/guides.xsd"
+        links-are-relative="true"
+        default-code-language="php">
+    <extension class="\T3Docs\Typo3DocsTheme\DependencyInjection\Typo3DocsThemeExtension"
+               project-home="https://github.com/Starraider/stylex-connector"
+               project-repository="https://github.com/Starraider/stylex-connector"
+               project-issues="https://github.com/Starraider/stylex-connector/issues"
+               edit-on-github="Starraider/stylex-connector"
+               edit-on-github-branch="main"
+               typo3-core-preferred="14.0"
+               interlink-shortcode="skom/stylex-connector" />
+    <project title="StyleX Connector" version="1.0.0" copyright="Sven Kalbhenn" />
+</guides>

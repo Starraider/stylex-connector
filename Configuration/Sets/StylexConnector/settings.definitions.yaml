@@ -1,0 +1,49 @@
+categories:
+  StylexConnector:
+    label: 'StyleX Connector'
+  StylexConnector.css:
+    label: 'CSS & Assets'
+    parent: StylexConnector
+
+settings:
+  StylexConnector.cssFilePath:
+    label: 'StyleX CSS file path'
+    description: 'Path to compiled StyleX CSS if loaded via TypoScript (leave empty if using Vite asset viewhelper in Fluid).'
+    category: StylexConnector.css
+    type: string
+    default: ''
+
+  StylexConnector.includeCssViaTypoScript:
+    label: 'Include CSS via TypoScript'
+    description: 'Enable to include StyleX CSS via TypoScript instead of <vite:asset> in templates.'
+    category: StylexConnector.css
+    type: bool
+    default: false
+
+  StylexConnector.declareCssLayers:
+    label: 'Declare CSS @layer ordering'
+    description: 'Adds @layer bootstrap, stylex, overrides; to the head.'
+    category: StylexConnector.css
+    type: bool
+    default: true
+
+  StylexConnector.cssPriority:
+    label: 'StyleX CSS include priority'
+    description: 'Load priority for StyleX CSS (60 ensures loading after Bootstrap).'
+    category: StylexConnector.css
+    type: int
+    default: 60
+
+  StylexConnector.bootstrapCssPriority:
+    label: 'Bootstrap CSS include priority'
+    description: 'Adjusted priority for Bootstrap CSS.'
+    category: StylexConnector.css
+    type: int
+    default: 40
+
+  StylexConnector.overrideBootstrapPriority:
+    label: 'Override Bootstrap priority'
+    description: 'Adjust Bootstrap CSS priority so StyleX loads after it.'
+    category: StylexConnector.css
+    type: bool
+    default: true

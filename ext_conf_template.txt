@@ -1,0 +1,14 @@
+# cat=basic; type=string; label=LLL:EXT:stylex_connector/Resources/Private/Language/locallang.xlf:extconf.manifestPath
+manifestPath =
+
+# cat=basic; type=boolean; label=LLL:EXT:stylex_connector/Resources/Private/Language/locallang.xlf:extconf.enableCssLayers
+enableCssLayers = 1
+
+# cat=basic; type=boolean; label=LLL:EXT:stylex_connector/Resources/Private/Language/locallang.xlf:extconf.overrideBootstrapSpecificity
+overrideBootstrapSpecificity = 1
+
+# cat=basic; type=boolean; label=LLL:EXT:stylex_connector/Resources/Private/Language/locallang.xlf:extconf.warnOnMissingKeys
+warnOnMissingKeys = 1
+
+# cat=advanced; type=integer; label=LLL:EXT:stylex_connector/Resources/Private/Language/locallang.xlf:extconf.manifestCacheLifetime
+manifestCacheLifetime = 86400

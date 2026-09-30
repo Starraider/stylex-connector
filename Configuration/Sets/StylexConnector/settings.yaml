@@ -1,0 +1,6 @@
+StylexConnector.cssFilePath: ''
+StylexConnector.includeCssViaTypoScript: false
+StylexConnector.declareCssLayers: false
+StylexConnector.cssPriority: 60
+StylexConnector.bootstrapCssPriority: 40
+StylexConnector.overrideBootstrapPriority: false
