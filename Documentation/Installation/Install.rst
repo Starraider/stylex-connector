@@ -16,6 +16,11 @@ Install the connector from the TYPO3 project root:
    composer require skom/stylex-connector
    vendor/bin/typo3 extension:activate stylex_connector
 
+The ``composer require`` command requires the package to be registered on
+Packagist. Before that registration, add
+``https://github.com/Starraider/stylex-connector`` as a Composer VCS repository
+and require ``skom/stylex-connector:dev-main`` in a test project.
+
 Run the activation command only if TYPO3 has not already activated the
 extension. If the sitepackage uses connector classes, declare
 ``skom/stylex-connector`` in the sitepackage's ``composer.json`` as well.

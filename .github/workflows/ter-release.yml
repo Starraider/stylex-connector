@@ -1,13 +1,10 @@
 name: Publish to TER
 
 on:
-  push:
-    tags:
-      - '[0-9]*.[0-9]*.[0-9]*'
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag (e.g. 1.0.0)'
+        description: 'Reviewed release tag (for example 1.0.0)'
         required: true
 
 permissions:
@@ -16,8 +13,12 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    env:
+      TYPO3_EXCLUDE_FROM_PACKAGING: ${{ github.workspace }}/Build/ter-exclude.php
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
 
       - uses: shivammathur/setup-php@v2
         with:
@@ -28,19 +29,34 @@ jobs:
 
       - name: Check tag and manifests
         env:
-          RELEASE_VERSION: ${{ github.event.inputs.tag || github.ref_name }}
+          RELEASE_VERSION: ${{ inputs.tag }}
         run: |
           [[ "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          test "$(git cat-file -t "refs/tags/$RELEASE_VERSION")" = tag
           php -r '$c = json_decode(file_get_contents("composer.json"), true, 512, JSON_THROW_ON_ERROR); exit(($c["extra"]["typo3/cms"]["version"] ?? "") === getenv("RELEASE_VERSION") ? 0 : 1);'
           php -r '$c = json_decode(file_get_contents("composer.json"), true, 512, JSON_THROW_ON_ERROR); $_EXTKEY = $c["extra"]["typo3/cms"]["extension-key"]; include "ext_emconf.php"; exit(($EM_CONF[$_EXTKEY]["version"] ?? "") === getenv("RELEASE_VERSION") ? 0 : 1);'
 
       - name: Install Tailor
         run: composer global require typo3/tailor --no-interaction --prefer-dist
 
+      - name: Inspect TER package
+        env:
+          RELEASE_VERSION: ${{ inputs.tag }}
+        run: |
+          "$(composer global config bin-dir --absolute)/tailor" create-artefact "$RELEASE_VERSION" stylex_connector --path=.
+          archive="tailor-version-artefact/stylex_connector_${RELEASE_VERSION}.zip"
+          for required in composer.json ext_emconf.php LICENSE CHANGELOG.md; do
+            unzip -Z1 "$archive" | grep -Fxq "$required"
+          done
+          if unzip -Z1 "$archive" | grep -Eq '^(vendor|public|var|Documentation-GENERATED-temp|\.phpunit\.cache|Tests|Build|\.github)/|(^|/)\.env'; then
+            echo "Release archive contains development files" >&2
+            exit 1
+          fi
+
       - name: Publish to TER
         env:
           TYPO3_API_TOKEN: ${{ secrets.TYPO3_API_TOKEN }}
-          RELEASE_VERSION: ${{ github.event.inputs.tag || github.ref_name }}
+          RELEASE_VERSION: ${{ inputs.tag }}
         run: |
           test -n "$TYPO3_API_TOKEN" || { echo "TYPO3_API_TOKEN secret is not configured in repository settings"; exit 1; }
-          ~/.composer/vendor/bin/tailor ter:publish "$RELEASE_VERSION" --comment="Release $RELEASE_VERSION"
+          "$(composer global config bin-dir --absolute)/tailor" ter:publish "$RELEASE_VERSION" stylex_connector --artefact="tailor-version-artefact/stylex_connector_${RELEASE_VERSION}.zip" --comment="Release $RELEASE_VERSION"

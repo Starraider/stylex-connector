@@ -9,7 +9,7 @@
                project-issues="https://github.com/Starraider/stylex-connector/issues"
                edit-on-github="Starraider/stylex-connector"
                edit-on-github-branch="main"
-               typo3-core-preferred="14.0"
+               typo3-core-preferred="14.3"
                interlink-shortcode="skom/stylex-connector" />
     <project title="StyleX Connector" version="1.0.0" copyright="Sven Kalbhenn" />
 </guides>

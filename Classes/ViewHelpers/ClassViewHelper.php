@@ -90,7 +90,7 @@ final class ClassViewHelper extends AbstractViewHelper
     {
         // --- Collect base style keys ---
         $styles = $this->arguments['styles'];
-        if (($styles === '' || $styles === null) && method_exists($this, 'renderChildren')) {
+        if ($styles === '' || $styles === null) {
             $children = (string)$this->renderChildren();
             if (trim($children) !== '') {
                 $styles = $children;
@@ -120,13 +120,13 @@ final class ClassViewHelper extends AbstractViewHelper
                 }
 
                 // Check if condition key is an explicit boolean or evaluated number
-                if ($conditionVar === true || $conditionVar === 1 || $conditionVar === '1') {
+                if ($conditionVar === 1 || $conditionVar === '1') {
                     $keys[] = $styleKey;
                     $whenMatched = true;
                     continue;
                 }
 
-                if ($conditionVar === false || $conditionVar === 0 || $conditionVar === '0') {
+                if ($conditionVar === 0 || $conditionVar === '0') {
                     continue;
                 }
 

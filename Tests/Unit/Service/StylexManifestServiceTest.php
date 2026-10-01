@@ -14,7 +14,6 @@ use Vendor\StylexConnector\Service\StylexManifestService;
 final class StylexManifestServiceTest extends TestCase
 {
     private CacheManager&MockObject $cacheManager;
-    private FrontendInterface&MockObject $cache;
     private string $tempFixtureDir;
 
     protected function setUp(): void
@@ -22,11 +21,11 @@ final class StylexManifestServiceTest extends TestCase
         parent::setUp();
         StylexRegistry::reset();
 
-        $this->cache = $this->createMock(FrontendInterface::class);
+        $cache = self::createStub(FrontendInterface::class);
         $this->cacheManager = $this->createMock(CacheManager::class);
         $this->cacheManager->method('getCache')
             ->with('stylex_manifest')
-            ->willReturn($this->cache);
+            ->willReturn($cache);
 
         $this->tempFixtureDir = sys_get_temp_dir() . '/stylex_test_' . uniqid();
         mkdir($this->tempFixtureDir, 0777, true);
@@ -114,7 +113,7 @@ final class StylexManifestServiceTest extends TestCase
 
         // When Nav.link comes last, its borderBottom class (x6pq) should win over x8uv
         $classesReversed = $service->getClasses('Nav.linkActive', 'Nav.link');
-        self::assertSame('x8uv x5mn x6pq', $classesReversed); // or order based on resolved map
+        self::assertSame('x6pq x5mn', $classesReversed);
     }
 
     public function testGetClassesSupportsCommaSeparatedKeys(): void
@@ -142,6 +141,26 @@ final class StylexManifestServiceTest extends TestCase
         $classes = $service->getClasses('A.one, B.two');
 
         self::assertSame('x1 x2', $classes);
+    }
+
+    public function testMalformedEntriesDoNotBreakClassResolution(): void
+    {
+        $manifestPath = $this->tempFixtureDir . '/stylex-manifest.json';
+        file_put_contents($manifestPath, json_encode([
+            'styles' => [
+                'Invalid.entry' => 'not an object',
+                'Invalid.properties' => ['className' => 'x-fallback', 'properties' => 'not an object'],
+                'Valid.entry' => ['className' => 'x-valid', 'properties' => ['color' => 'x-valid', 'padding' => []]],
+            ],
+        ]));
+        StylexRegistry::registerManifest('test_ext', $manifestPath);
+
+        $service = new StylexManifestService($this->cacheManager);
+        self::assertSame(
+            'x-valid x-fallback',
+            $service->getClasses('Invalid.entry', 'Invalid.properties', 'Valid.entry')
+        );
+        self::assertSame(['Invalid.properties', 'Valid.entry'], $service->getAvailableKeys());
     }
 
     public function testGetAvailableKeysAndCount(): void
@@ -207,9 +226,12 @@ final class StylexManifestServiceTest extends TestCase
 
     public function testClearCacheFlushesFrontendCache(): void
     {
-        $this->cache->expects(self::once())->method('flush');
+        $cache = $this->createMock(FrontendInterface::class);
+        $cache->expects(self::once())->method('flush');
+        $cacheManager = self::createStub(CacheManager::class);
+        $cacheManager->method('getCache')->willReturn($cache);
 
-        $service = new StylexManifestService($this->cacheManager);
+        $service = new StylexManifestService($cacheManager);
         $service->clearCache();
     }
 }

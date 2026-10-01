@@ -26,7 +26,7 @@ final class StylexManifestService
      * Merged style registry from all registered manifests.
      * Format: { "Nav.link": { "className": "x5mn x6pq", "properties": { "color": "x5mn", "borderBottom": "x6pq" } } }
      *
-     * @var array<string, array{className: string, properties?: array<string, string>}>
+     * @var array<string, array<string, mixed>>
      */
     private array $styles = [];
 
@@ -100,11 +100,13 @@ final class StylexManifestService
             $styleDefinition = $this->styles[$key];
             if (!empty($styleDefinition['properties']) && is_array($styleDefinition['properties'])) {
                 foreach ($styleDefinition['properties'] as $property => $className) {
-                    $resolvedProperties[$property] = $className;
+                    if (is_string($property) && is_string($className)) {
+                        $resolvedProperties[$property] = $className;
+                    }
                 }
-            } elseif (!empty($styleDefinition['className'])) {
+            } elseif (isset($styleDefinition['className']) && is_string($styleDefinition['className'])) {
                 // Fallback if no granular property mapping is present
-                foreach (explode(' ', trim((string)$styleDefinition['className'])) as $cls) {
+                foreach (explode(' ', trim($styleDefinition['className'])) as $cls) {
                     $cls = trim($cls);
                     if ($cls !== '') {
                         $fallbackClasses[$cls] = $cls;
@@ -202,7 +204,7 @@ final class StylexManifestService
      * Loads all registered manifests and merges their style entries.
      * Later-registered manifests override earlier ones for the same key.
      *
-     * @return array<string, array{className: string, properties?: array<string, string>}>
+     * @return array<string, array<string, mixed>>
      */
     private function loadAndMergeManifests(): array
     {
@@ -258,7 +260,11 @@ final class StylexManifestService
             }
 
             // Later-registered manifests win for conflicting keys
-            $merged = array_merge($merged, $data['styles']);
+            foreach ($data['styles'] as $styleKey => $definition) {
+                if (is_string($styleKey) && is_array($definition)) {
+                    $merged[$styleKey] = $definition;
+                }
+            }
         }
 
         return $merged;

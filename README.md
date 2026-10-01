@@ -2,7 +2,9 @@
 
 StyleX Connector makes classes compiled by [StyleX](https://stylexjs.com/) available in TYPO3 Fluid templates. A sitepackage registers a JSON manifest produced by its frontend build. The `{stylex:class(...)}` ViewHelper resolves semantic keys from that manifest into atomic class names.
 
-The extension supports TYPO3 12.4, 13.4, and 14.x with PHP 8.1 through 8.4. It does not compile StyleX source files or serve the generated CSS.
+The extension targets TYPO3 12.4, 13.4, and 14.3 or later in the 14.x line. PHP 8.1 is supported with TYPO3 12.4; TYPO3 13.4 and 14.3 require PHP 8.2 or later. The extension currently limits its PHP support to 8.4. It does not compile StyleX source files or serve the generated CSS.
+
+TYPO3 12.4 is in ELTS. Production installations on that line need a current patched ELTS core release.
 
 ## Documentation
 
@@ -18,7 +20,7 @@ Start with the [installation guide](Documentation/Installation/Index.rst). It co
 
 ## Minimal example
 
-Install the extension in the TYPO3 project:
+After the package is registered on Packagist, install the extension in the TYPO3 project:
 
 ```bash
 composer require skom/stylex-connector
@@ -39,16 +41,19 @@ After the frontend build creates that file and the page includes its CSS, use a 
 <button class="{stylex:class(styles: 'Button.root')}">Save</button>
 ```
 
-Follow the [installation guide](Documentation/Installation/Index.rst) for the required build and asset setup around this example.
+Until then, add the [Git repository](https://github.com/Starraider/stylex-connector) as a Composer VCS repository and require `skom/stylex-connector:dev-main` in a test project. Follow the [installation guide](Documentation/Installation/Index.rst) for the required build and asset setup around this example.
 
-## Privacy and Data Handling
+## Upgrades
 
-The StyleX Connector extension operates entirely at template render time to resolve style class names from local JSON manifests. It does not collect, track, persist, or transmit any personal user data.
+Version 1.0.0 is the first release. There is no earlier database schema or data migration. When updating a deployed build, deploy the StyleX manifest and CSS together and flush TYPO3 caches so the connector reads the new manifest. See the [changelog](CHANGELOG.md) for release notes.
 
-## Issues and Support
+## Privacy and data handling
 
-Please report issues, ask questions, or contribute on GitHub:
-https://github.com/Starraider/stylex-connector/issues
+StyleX Connector reads local JSON manifests and caches their style keys and CSS class names in TYPO3's cache. It does not collect, store, or transmit personal data. Flushing TYPO3 caches deletes the cached manifest data. No privacy-specific configuration or retention schedule is needed for the connector itself; the host site remains responsible for its own data handling.
+
+## Issues and security
+
+Report bugs and ask questions through [GitHub issues](https://github.com/Starraider/stylex-connector/issues). Send suspected security vulnerabilities privately to [sven@skom.de](mailto:sven@skom.de) instead of opening a public issue.
 
 ## License
 

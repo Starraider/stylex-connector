@@ -25,7 +25,7 @@ loads the manifest and the ViewHelper writes the resolved classes into a
 Requirements
 ============
 
-The extension supports TYPO3 12.4, 13.4, and 14.0 or later within their
+The extension targets TYPO3 12.4, 13.4, and 14.3 or later within their
 respective major lines. It requires PHP 8.1 through 8.4 and
 ``typo3/cms-fluid`` in the same supported TYPO3 range.
 
