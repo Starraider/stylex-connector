@@ -35,7 +35,15 @@ jobs:
       - name: Validate Composer metadata
         run: composer validate --strict
 
+      # The last public TYPO3 12.4 release has known advisories. ELTS fixes require
+      # an ELTS subscription; this job checks extension compatibility only.
+      - name: Explain TYPO3 12.4 compatibility test
+        if: matrix.typo3 == '12.4'
+        run: echo '::warning::TYPO3 12.4 public packages have security advisories. Use a patched ELTS release in production.'
+
       - name: Install dependencies for TYPO3 ${{ matrix.typo3 }}
+        env:
+          COMPOSER_POLICY_ADVISORIES_BLOCK: ${{ matrix.typo3 == '12.4' && '0' || '1' }}
         run: composer update --no-interaction --prefer-dist --no-progress --with "typo3/cms-core:^${{ matrix.typo3 }}" --with "typo3/cms-fluid:^${{ matrix.typo3 }}"
 
       - name: Lint PHP files
