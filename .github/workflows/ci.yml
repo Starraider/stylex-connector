@@ -45,7 +45,8 @@ jobs:
           php -l ext_emconf.php
 
       - name: Check XLIFF files
-        run: find Resources/Private/Language -name '*.xlf' -print0 | xargs -0 -r -n1 php -r '$xml = new DOMDocument(); exit($xml->load($argv[1]) ? 0 : 1);'
+        run: |
+          find Resources/Private/Language -name '*.xlf' -print0 | xargs -0 -r -n1 php -r '$xml = new DOMDocument(); exit($xml->load($argv[1]) ? 0 : 1);'
 
       - name: Check coding style
         run: vendor/bin/phpcs --standard=phpcs.xml.dist
