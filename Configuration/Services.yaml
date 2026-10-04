@@ -27,3 +27,8 @@ services:
   Skom\StylexConnector\ViewHelpers\ClassViewHelper:
     alias: Vendor\StylexConnector\ViewHelpers\ClassViewHelper
     public: true
+
+  Vendor\StylexConnector\Command\ValidateCommand:
+    tags:
+      - name: console.command
+        command: 'stylex:validate'

@@ -34,7 +34,7 @@ Use the generated manifest keys in the block template:
 
 The shared asset call in :ref:`connect-typo3` loads the compiled rules. Do
 not add another CSS asset call for the same StyleX output. Give each StyleX
-source file a distinct basename if using the example manifest writer in
+source file a distinct basename if using the maintained manifest adapter in
 :ref:`vite-and-asset-delivery`, since ``Card.stylex.js`` produces keys such
 as ``Card.root``.
 

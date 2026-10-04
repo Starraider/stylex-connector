@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Vendor\StylexConnector\Service;
 
+use Psr\Log\LoggerAwareInterface;
+use Psr\Log\LoggerAwareTrait;
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
@@ -15,13 +17,20 @@ use Vendor\StylexConnector\Configuration\StylexRegistry;
  * Loads one or more StyleX manifest JSON files and resolves style keys
  * to atomic CSS class name strings.
  *
- * Replicates stylex.props() behavior in PHP:
+ * Supports static compiled conflict maps and complete class recipes:
  * - Accepts multiple style keys
  * - Merges CSS properties left-to-right: later keys win on conflict
  * - Caches the merged manifest using TYPO3's caching framework
  */
-final class StylexManifestService
+final class StylexManifestService implements LoggerAwareInterface
 {
+    use LoggerAwareTrait;
+
+    private array $diagnostics = [];
+    private array $registrations = [];
+    private bool $complete = true;
+    private ?\Throwable $configurationError = null;
+    private array $missingKeys = [];
     /**
      * Merged style registry from all registered manifests.
      * Format: { "Nav.link": { "className": "x5mn x6pq", "properties": { "color": "x5mn", "borderBottom": "x6pq" } } }
@@ -37,12 +46,14 @@ final class StylexManifestService
     private readonly array $extConf;
 
     public function __construct(
-        private readonly CacheManager $cacheManager
+        private readonly CacheManager $cacheManager,
+        ?ExtensionConfiguration $configuration = null
     ) {
         try {
-            $this->extConf = GeneralUtility::makeInstance(ExtensionConfiguration::class)
+            $this->extConf = ($configuration ?? GeneralUtility::makeInstance(ExtensionConfiguration::class))
                 ->get('stylex_connector');
-        } catch (\Throwable) {
+        } catch (\Throwable $exception) {
+            $this->configurationError = $exception;
             $this->extConf = [];
         }
     }
@@ -50,7 +61,7 @@ final class StylexManifestService
     /**
      * Resolves one or more StyleX style keys to a space-separated class name string.
      *
-     * Equivalent to calling stylex.props(styles.key1, styles.key2, ...) in JavaScript.
+     * Composes supported static conflict maps. Recipes concatenate without conflict resolution.
      * Later keys override earlier keys for conflicting CSS properties.
      *
      * @param string ...$styleKeys e.g. 'Nav.link', 'Nav.linkActive' or comma-separated 'Nav.link, Nav.linkActive'
@@ -84,12 +95,16 @@ final class StylexManifestService
 
         foreach ($flatKeys as $key) {
             if (!isset($this->styles[$key])) {
+                if (!isset($this->missingKeys[$key]) && count($this->missingKeys) < 100) {
+                    $this->missingKeys[$key] = true;
+                    $this->logger?->warning('Unknown StyleX key.', ['key' => $key]);
+                }
                 if ($this->shouldWarnOnMissingKeys()) {
                     trigger_error(
                         sprintf(
                             '[StyleX Connector] Unknown style key "%s". Available keys: %s',
                             $key,
-                            implode(', ', array_keys($this->styles))
+                            implode(', ', array_slice(array_keys($this->styles), 0, 12))
                         ),
                         E_USER_WARNING
                     );
@@ -98,9 +113,11 @@ final class StylexManifestService
             }
 
             $styleDefinition = $this->styles[$key];
-            if (!empty($styleDefinition['properties']) && is_array($styleDefinition['properties'])) {
+            if ($styleDefinition['kind'] === 'compiled') {
                 foreach ($styleDefinition['properties'] as $property => $className) {
-                    if (is_string($property) && is_string($className)) {
+                    if ($className === null) {
+                        unset($resolvedProperties[$property]);
+                    } else {
                         $resolvedProperties[$property] = $className;
                     }
                 }
@@ -115,8 +132,26 @@ final class StylexManifestService
             }
         }
 
-        $allClasses = array_merge(array_values($resolvedProperties), array_values($fallbackClasses));
+        $classList = array_merge(array_values($resolvedProperties), array_values($fallbackClasses));
+        $allClasses = preg_split('/\s+/', trim(implode(' ', $classList)), -1, PREG_SPLIT_NO_EMPTY) ?: [];
         return implode(' ', array_unique($allClasses));
+    }
+
+    public function hasStyle(string $key): bool
+    {
+        $this->ensureLoaded();
+        return isset($this->styles[$key]);
+    }
+
+    /** Ordered registrations and bounded, owner-aware load diagnostics for CLI tooling. */
+    public function getReport(): array
+    {
+        $this->ensureLoaded();
+        return [
+            'registrations' => $this->registrations,
+            'diagnostics' => $this->diagnostics,
+            'count' => count($this->styles),
+        ];
     }
 
     /**
@@ -148,11 +183,14 @@ final class StylexManifestService
     {
         $this->loaded = false;
         $this->styles = [];
+        $this->diagnostics = [];
+        $this->registrations = [];
 
         try {
             $cache = $this->getCacheInstance();
             $cache->flush();
-        } catch (\Throwable) {
+        } catch (\Throwable $exception) {
+            $this->logger?->warning('StyleX cache flush failed.', ['exception' => $exception]);
             // Cache not available
         }
     }
@@ -167,7 +205,22 @@ final class StylexManifestService
             return;
         }
 
-        $cacheKey = 'stylex_merged_manifest_v1';
+        if ($this->configurationError !== null) {
+            $this->logger?->notice('StyleX extension configuration unavailable; using defaults.', [
+                'exception' => $this->configurationError,
+            ]);
+        }
+        $identity = [];
+        foreach ($this->collectManifestPaths() as $owner => $rawPath) {
+            $path = $this->resolveManifestPath($rawPath);
+            $path = $path !== null ? (realpath($path) ?: $path) : $rawPath;
+            $identity[] = [
+                $owner, StylexRegistry::allowsOverrides($owner), $path,
+                is_file($path) && is_readable($path) ? hash_file('sha256', $path) : null,
+            ];
+        }
+        // Content hashing catches atomic replacement even when size and mtime are preserved.
+        $cacheKey = 'stylex_v2_' . hash('sha256', serialize($identity));
         $lifetime = $this->getCacheLifetime();
 
         if ($lifetime > 0) {
@@ -175,24 +228,36 @@ final class StylexManifestService
                 $cache = $this->getCacheInstance();
                 if ($cache->has($cacheKey)) {
                     $cachedData = $cache->get($cacheKey);
-                    if (is_array($cachedData)) {
-                        $this->styles = $cachedData;
+                    if (
+                        is_array($cachedData)
+                        && isset($cachedData['styles'], $cachedData['diagnostics'], $cachedData['registrations'])
+                    ) {
+                        $this->styles = $cachedData['styles'];
+                        $this->diagnostics = $cachedData['diagnostics'];
+                        $this->registrations = $cachedData['registrations'];
                         $this->loaded = true;
                         return;
                     }
                 }
-            } catch (\Throwable) {
+            } catch (\Throwable $exception) {
+                $this->logger?->warning('StyleX persistent cache unavailable.', ['exception' => $exception]);
                 // Cache unavailable -- continue without cache
             }
         }
 
         $this->styles = $this->loadAndMergeManifests();
 
-        if ($lifetime > 0) {
+        if ($lifetime > 0 && $this->complete) {
             try {
                 $cache = $this->getCacheInstance();
-                $cache->set($cacheKey, $this->styles, ['stylex'], $lifetime);
-            } catch (\Throwable) {
+                $snapshot = [
+                    'styles' => $this->styles,
+                    'diagnostics' => $this->diagnostics,
+                    'registrations' => $this->registrations,
+                ];
+                $cache->set($cacheKey, $snapshot, ['stylex'], $lifetime);
+            } catch (\Throwable $exception) {
+                $this->logger?->warning('StyleX persistent cache unavailable.', ['exception' => $exception]);
                 // Cache unavailable -- styles loaded but not persisted
             }
         }
@@ -209,71 +274,52 @@ final class StylexManifestService
     private function loadAndMergeManifests(): array
     {
         $merged = [];
-        $manifestPaths = $this->collectManifestPaths();
-
-        if (empty($manifestPaths)) {
-            if (Environment::getContext()->isDevelopment()) {
-                trigger_error(
-                    '[StyleX Connector] No manifests registered. '
-                    . 'Call StylexRegistry::registerManifest() in your sitepackage ext_localconf.php.',
-                    E_USER_NOTICE
-                );
-            }
-            return [];
-        }
-
-        foreach ($manifestPaths as $extKey => $rawPath) {
-            $absolutePath = $this->resolveManifestPath($rawPath);
-
-            if ($absolutePath === null || !file_exists($absolutePath)) {
-                if (Environment::getContext()->isDevelopment()) {
-                    trigger_error(
-                        sprintf(
-                            '[StyleX Connector] Manifest for extension "%s" not found at: %s. '
-                            . 'Run "npm run build" in your sitepackage.',
-                            $extKey,
-                            $rawPath
-                        ),
-                        E_USER_WARNING
-                    );
-                }
-                continue;
-            }
-
-            $json = file_get_contents($absolutePath);
+        $owners = [];
+        $this->complete = true;
+        $this->diagnostics = [];
+        $this->registrations = [];
+        $reader = new ManifestReader();
+        foreach ($this->collectManifestPaths() as $owner => $rawPath) {
+            $path = $this->resolveManifestPath($rawPath);
+            $json = $path !== null && is_file($path) && is_readable($path) ? file_get_contents($path) : false;
             if ($json === false) {
+                $this->diagnose('unreadable', $owner, $path ?? $rawPath, 'Manifest is missing or unreadable.');
                 continue;
             }
-
-            $data = json_decode($json, true);
-
-            if (json_last_error() !== JSON_ERROR_NONE || !isset($data['styles']) || !is_array($data['styles'])) {
-                trigger_error(
-                    sprintf(
-                        '[StyleX Connector] Manifest JSON invalid for extension "%s": %s',
-                        $extKey,
-                        json_last_error_msg()
-                    ),
-                    E_USER_WARNING
-                );
-                continue;
+            $result = $reader->read($json);
+            foreach ($result['errors'] as $error) {
+                $this->diagnose('invalid', $owner, $path, $error);
             }
-
-            // Later-registered manifests win for conflicting keys
-            foreach ($data['styles'] as $styleKey => $definition) {
-                if (is_string($styleKey) && is_array($definition)) {
-                    $merged[$styleKey] = $definition;
+            $this->registrations[] = [
+                'owner' => $owner, 'path' => $path,
+                'count' => count($result['styles']), 'metadata' => $result['metadata'],
+            ];
+            foreach ($result['styles'] as $key => $definition) {
+                if (isset($owners[$key]) && !StylexRegistry::allowsOverrides($owner)) {
+                    $message = sprintf('Key "%s" overrides owner "%s".', $key, $owners[$key]);
+                    $this->diagnose('collision', $owner, $path, $message);
                 }
+                $merged[$key] = $definition;
+                $owners[$key] = $owner;
             }
         }
-
         return $merged;
+    }
+
+    private function diagnose(string $category, string $owner, string $path, string $message): void
+    {
+        $this->complete = false;
+        $diagnostic = ['category' => $category, 'owner' => $owner, 'path' => $path, 'message' => $message];
+        if (count($this->diagnostics) < 100) {
+            $this->diagnostics[] = $diagnostic;
+            $this->logger?->warning('StyleX manifest: ' . $message, $diagnostic);
+        }
     }
 
     /**
      * Collects all manifest paths from:
-     * 1. StylexRegistry (PHP registration -- highest priority)
-     * 2. Extension Manager configuration (fallback)
+     * 1. StylexRegistry in registration order
+     * 2. Extension Manager path last by default, preserving v1 precedence
      *
      * @return array<string, string>
      */
@@ -284,7 +330,11 @@ final class StylexManifestService
         // Add fallback from Extension Manager configuration
         $extConfPath = trim((string)($this->extConf['manifestPath'] ?? ''));
         if ($extConfPath !== '' && !in_array($extConfPath, $paths, true)) {
-            $paths['_extconf'] = $extConfPath;
+            if (($this->extConf['manifestPathMode'] ?? 'legacyOverride') === 'fallback') {
+                $paths = ['_extconf' => $extConfPath] + $paths;
+            } else {
+                $paths['_extconf'] = $extConfPath;
+            }
         }
 
         return $paths;

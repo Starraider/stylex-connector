@@ -1,6 +1,6 @@
 # StyleX Connector for TYPO3
 
-StyleX Connector makes classes compiled by [StyleX](https://stylexjs.com/) available in TYPO3 Fluid templates. A sitepackage registers a JSON manifest produced by its frontend build. The `{stylex:class(...)}` ViewHelper resolves semantic keys from that manifest into atomic class names.
+StyleX Connector makes classes compiled by [StyleX](https://stylexjs.com/) available in TYPO3 Fluid templates. A sitepackage registers a JSON manifest produced by its frontend build. The `{stylex:class(...)}` ViewHelper composes supported static conflict maps, including null clearing, or looks up complete class recipes. Recipes concatenate without conflict resolution; dynamic class-plus-variable styles need a consumer adapter.
 
 The extension targets TYPO3 12.4, 13.4, and 14.3 or later in the 14.x line. PHP 8.1 is supported with TYPO3 12.4; TYPO3 13.4 and 14.3 require PHP 8.2 or later. The extension currently limits its PHP support to 8.4. It does not compile StyleX source files or serve the generated CSS.
 
@@ -45,7 +45,7 @@ Until then, add the [Git repository](https://github.com/Starraider/stylex-connec
 
 ## Upgrades
 
-Version 1.0.0 is the first release. There is no earlier database schema or data migration. When updating a deployed build, deploy the StyleX manifest and CSS together and flush TYPO3 caches so the connector reads the new manifest. See the [changelog](CHANGELOG.md) for release notes.
+The current improvements retain v1 manifests and both PHP namespaces. The maintained optional Vite adapter emits v2 manifests with stable keys and paired CSS hashes. Use `vendor/bin/typo3 stylex:validate --required-key Button.root` before deployment. Deploy matching CSS and manifests together and flush dependent page caches. See [upgrade notes](Documentation/Migration/Index.rst) for precedence and deprecated CSS controls. See the [changelog](CHANGELOG.md) for release notes.
 
 ## Privacy and data handling
 

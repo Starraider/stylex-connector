@@ -12,7 +12,7 @@ use Vendor\StylexConnector\Service\StylexManifestService;
  * Resolves StyleX style keys to atomic CSS class names.
  *
  * Designed for inline use as an attribute value in Fluid templates.
- * Faithfully replicates stylex.props() conflict resolution in PHP.
+ * Composes static conflict maps and looks up complete recipes.
  *
  * The Fluid namespace is registered globally via ext_localconf.php.
  * No per-template xmlns declaration needed if global registration is active.
@@ -97,15 +97,7 @@ final class ClassViewHelper extends AbstractViewHelper
             }
         }
 
-        $keys = [];
-
-        if (is_string($styles) && $styles !== '') {
-            // Pattern A: "Nav.link, Nav.linkActive"
-            $keys = array_values(array_filter(array_map('trim', explode(',', $styles))));
-        } elseif (is_array($styles)) {
-            // Pattern B: {0: 'Nav.link', 1: 'Nav.linkActive'}
-            $keys = array_values(array_filter(array_map('trim', array_values($styles))));
-        }
+        $keys = $this->normalizeKeys($styles);
 
         // --- Apply conditional styles ---
         $when = $this->arguments['when'] ?? [];
@@ -114,14 +106,14 @@ final class ClassViewHelper extends AbstractViewHelper
             $templateVars = $this->renderingContext->getVariableProvider()->getAll();
 
             foreach ($when as $conditionVar => $styleKey) {
-                $styleKey = trim((string)$styleKey);
-                if ($styleKey === '') {
+                $conditionalKeys = $this->normalizeKeys($styleKey);
+                if ($conditionalKeys === []) {
                     continue;
                 }
 
                 // Check if condition key is an explicit boolean or evaluated number
                 if ($conditionVar === 1 || $conditionVar === '1') {
-                    $keys[] = $styleKey;
+                    $keys = array_merge($keys, $conditionalKeys);
                     $whenMatched = true;
                     continue;
                 }
@@ -134,7 +126,7 @@ final class ClassViewHelper extends AbstractViewHelper
                 $value = $this->resolveVariable($conditionVarStr, $templateVars);
 
                 if (!empty($value)) {
-                    $keys[] = $styleKey;
+                    $keys = array_merge($keys, $conditionalKeys);
                     $whenMatched = true;
                 }
             }
@@ -142,14 +134,7 @@ final class ClassViewHelper extends AbstractViewHelper
 
         // --- Apply fallback styles if when conditions were not met ---
         if (!empty($when) && !$whenMatched) {
-            $else = $this->arguments['else'] ?? '';
-            if (is_string($else) && $else !== '') {
-                $elseKeys = array_values(array_filter(array_map('trim', explode(',', $else))));
-                $keys = array_merge($keys, $elseKeys);
-            } elseif (is_array($else)) {
-                $elseKeys = array_values(array_filter(array_map('trim', array_values($else))));
-                $keys = array_merge($keys, $elseKeys);
-            }
+            $keys = array_merge($keys, $this->normalizeKeys($this->arguments['else'] ?? ''));
         }
 
         if (empty($keys)) {
@@ -161,6 +146,27 @@ final class ClassViewHelper extends AbstractViewHelper
             ENT_QUOTES | ENT_SUBSTITUTE,
             'UTF-8'
         );
+    }
+
+    private function normalizeKeys(mixed $input): array
+    {
+        if ($input === null || $input === '') {
+            return [];
+        }
+        $values = is_array($input) ? $input : [$input];
+        $keys = [];
+        foreach ($values as $value) {
+            if (!is_string($value)) {
+                throw new \InvalidArgumentException('StyleX keys must be strings or arrays of strings.', 1791060001);
+            }
+            foreach (explode(',', $value) as $key) {
+                $key = trim($key);
+                if ($key !== '') {
+                    $keys[] = $key;
+                }
+            }
+        }
+        return $keys;
     }
 
     /**
@@ -183,11 +189,11 @@ final class ClassViewHelper extends AbstractViewHelper
                 $isser = 'is' . ucfirst($segment);
                 $hasser = 'has' . ucfirst($segment);
 
-                if (method_exists($current, $getter)) {
+                if (is_callable([$current, $getter])) {
                     $current = $current->$getter();
-                } elseif (method_exists($current, $isser)) {
+                } elseif (is_callable([$current, $isser])) {
                     $current = $current->$isser();
-                } elseif (method_exists($current, $hasser)) {
+                } elseif (is_callable([$current, $hasser])) {
                     $current = $current->$hasser();
                 } elseif (isset($current->$segment)) {
                     $current = $current->$segment;

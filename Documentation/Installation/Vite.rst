@@ -19,7 +19,7 @@ Use the project's existing package manager. With npm at the project root:
    npm install @stylexjs/stylex
    npm install --save-dev vite vite-plugin-typo3 @stylexjs/unplugin @babel/parser
 
-``@babel/parser`` is needed by the example manifest writer below. Install a
+``@babel/parser`` is needed by the optional maintained manifest adapter. Install a
 Node.js release supported by the Vite version selected for your project.
 
 Declare an entrypoint
@@ -48,10 +48,11 @@ Start with explicit imports. For many custom Content Blocks, see
 Compile StyleX and write its manifest
 =====================================
 
-Add ``@stylexjs/unplugin`` and a project-owned manifest writer to
-``vite.config.js``. The writer shown here accepts an options object. Its
+Add ``@stylexjs/unplugin`` and the maintained static manifest adapter to
+``vite.config.js``. The adapter accepts an options object. Its
 ``outputPath`` must match the PHP registration in :doc:`Connect`. The
-connector itself does not supply this Vite plugin.
+connector ships it at ``Resources/Private/Build/stylex-manifest.mjs``.
+Prebuilt-manifest consumers do not need Node.js at PHP runtime.
 
 .. code-block:: javascript
    :caption: vite.config.js
@@ -59,7 +60,7 @@ connector itself does not supply this Vite plugin.
    import { defineConfig } from 'vite';
    import typo3 from 'vite-plugin-typo3';
    import stylexPlugin from '@stylexjs/unplugin';
-   import stylexManifestPlugin from './vite-plugin-stylex-manifest.js';
+   import stylexManifestPlugin from './vendor/skom/stylex-connector/Resources/Private/Build/stylex-manifest.mjs';
 
    export default defineConfig({
      plugins: [
@@ -81,77 +82,34 @@ connector itself does not supply this Vite plugin.
 typical Bootstrap or Fluid Styled Content setup. For layered CSS, read
 :ref:`bootstrap-and-cascade-layers` before changing the option.
 
-This small writer supports ``*.stylex.js`` files with ``stylex.create()``
-exports. The source file's basename becomes the manifest key prefix, so give
-each StyleX source file a distinct basename. For example,
-``Button.stylex.js`` yields ``Button.root``. Adapt the parser if the project
-uses other source forms.
+The adapter supports static compiled conflict maps from ``*.stylex.js``,
+``*.stylex.jsx``, ``*.stylex.ts`` and ``*.stylex.tsx``. Run Vite from the
+Composer project root, where the build dependencies are installed. Its tests
+pin StyleX 0.19.1. Dynamic functions and other unsupported conflict values
+fail the build. Use a separate consumer adapter to generate complete recipes.
 
-.. code-block:: javascript
-   :caption: vite-plugin-stylex-manifest.js at the project root
+The canonical key includes namespace, root-relative module path, style object
+and variant, for example ``site/packages/my_sitepackage/Resources/Private/JavaScript/Stylex/Button.stylex.styles.root``.
+Set ``root`` to the source package and ``namespace`` to its stable package name
+for shorter keys. Real paths remove Composer symlink differences.
 
-   import fs from 'node:fs';
-   import path from 'node:path';
-   import { parse } from '@babel/parser';
+``legacyAliases`` defaults to true, adding ``Button.root`` for existing Fluid
+templates. Ambiguous aliases and duplicate keys fail instead of silently
+replacing entries. Disable aliases after migrating templates. ``include``
+accepts a regular expression or predicate for other source naming policies.
+``compilerVersion`` records your pinned compiler version.
 
-   export default function stylexManifestPlugin({ outputPath }) {
-     const styles = {};
-     let timer;
-     let server;
+The adapter replaces each module's entries after a successful transform,
+removes deleted modules, and resets collection for each production build.
+Production publication runs after bundle writing. It hashes emitted CSS and
+writes a deterministic v2 manifest with an atomic temporary-file replacement.
+A failed transform or build leaves the previous manifest intact. Build into a
+staging directory: atomic JSON replacement does not make separately written
+CSS atomic. See :doc:`../Migration/Index` for deployment and rollback.
 
-     function write() {
-       fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-       fs.writeFileSync(outputPath, JSON.stringify({ styles }, null, 2));
-       server?.ws.send({ type: 'full-reload' });
-     }
-
-     return {
-       name: 'stylex-manifest',
-       enforce: 'post',
-       configureServer(viteServer) { server = viteServer; },
-       buildStart() { Object.keys(styles).forEach(key => delete styles[key]); },
-       transform(code, id) {
-         if (!/\.stylex\.js$/.test(id)) return null;
-         const prefix = path.basename(id, '.stylex.js');
-         for (const key of Object.keys(styles)) {
-           if (key.startsWith(`${prefix}.`)) delete styles[key];
-         }
-         const ast = parse(code, { sourceType: 'module' });
-         for (const node of ast.program.body) {
-           const declaration = node.type === 'ExportNamedDeclaration'
-             ? node.declaration : node;
-           if (declaration?.type !== 'VariableDeclaration') continue;
-           for (const variable of declaration.declarations) {
-             if (variable.init?.type !== 'ObjectExpression') continue;
-             for (const variant of variable.init.properties) {
-               if (variant.type !== 'ObjectProperty' ||
-                   variant.value.type !== 'ObjectExpression') continue;
-               const properties = {};
-               let compiled = false;
-               for (const property of variant.value.properties) {
-                 if (property.type !== 'ObjectProperty') continue;
-                 const name = property.key.name ?? property.key.value;
-                 if (name === '$$css') compiled = true;
-                 else if (property.value.type === 'StringLiteral') {
-                   properties[name] = property.value.value;
-                 }
-               }
-               if (!compiled) continue;
-               const name = variant.key.name ?? variant.key.value;
-               styles[`${prefix}.${name}`] = {
-                 className: Object.values(properties).join(' '),
-                 properties,
-               };
-             }
-           }
-         }
-         clearTimeout(timer);
-         timer = setTimeout(write, 100);
-         return null;
-       },
-       buildEnd() { clearTimeout(timer); write(); },
-     };
-   }
+Import a nonempty CSS file from the entrypoint. StyleX 0.19.1 attaches its CSS
+to an existing Vite CSS asset, so an entrypoint without that import can leave
+its fallback CSS outside the Vite manifest's entrypoint references.
 
 For a first style, create ``Button.stylex.js`` beside the other StyleX
 sources and import it in ``Main.entry.js``:

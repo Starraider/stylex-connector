@@ -1,1 +1,30 @@
-@import 'EXT:stylex_connector/Configuration/TypoScript/setup.typoscript'
+# Site Set settings use their public StylexConnector names.
+# Vite consumers should let their entrypoint own CSS delivery.
+config.fluid.namespace.stylex = Vendor\StylexConnector\ViewHelpers
+
+[{$StylexConnector.includeCssViaTypoScript} == 1]
+    page.includeCSS {
+        stylex_connector = {$StylexConnector.cssFilePath}
+        stylex_connector {
+            forceOnTop = 0
+            media = all
+        }
+    }
+[END]
+
+# TYPO3 12/13 still support these optimization controls. TYPO3 14 removed them.
+[{$StylexConnector.includeCssViaTypoScript} == 1 && typo3.version < 14]
+    page.includeCSS.stylex_connector.disableCompression = 1
+    page.includeCSS.stylex_connector.excludeFromConcatenation = 1
+[END]
+
+# Compatibility switch: uses the real forceOnTop mechanism for known Bootstrap
+# assets. Numeric cssPriority/bootstrapCssPriority never established head order.
+[{$StylexConnector.overrideBootstrapPriority} == 1]
+    page.includeCSS.bootstrap.forceOnTop = 1
+    page.includeCSS.bootstrap_package_bootstrap.forceOnTop = 1
+    page.includeCSS.bootstrap_cdn.forceOnTop = 1
+[END]
+
+# declareCssLayers is deprecated and no longer emits late headerData.
+# Put @layer bootstrap, stylex, overrides; FIRST in the consuming CSS build.

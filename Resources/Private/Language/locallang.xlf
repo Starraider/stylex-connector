@@ -3,13 +3,13 @@
   <file datatype="plaintext" original="" source-language="en" date="2026-09-26">
     <body>
       <trans-unit id="extconf.manifestPath">
-        <source>Fallback manifest path (EXT: or absolute). Used if no sitepackage calls StylexRegistry::registerManifest().</source>
+        <source>Additional manifest path, EXT: or absolute. Precedence is controlled by manifestPathMode.</source>
       </trans-unit>
       <trans-unit id="extconf.enableCssLayers">
-        <source>Enable CSS @layer declarations via TypoScript (recommended with Bootstrap).</source>
+        <source>Deprecated, no effect. Declare layer order at the start of your CSS build.</source>
       </trans-unit>
       <trans-unit id="extconf.overrideBootstrapSpecificity">
-        <source>Load StyleX CSS after Bootstrap CSS to ensure StyleX overrides win.</source>
+        <source>Deprecated, no effect. Configure stylesheet order in the consuming site.</source>
       </trans-unit>
       <trans-unit id="extconf.warnOnMissingKeys">
         <source>Warn (PHP E_USER_WARNING) when an unknown style key is used in a Fluid template (development context only).</source>

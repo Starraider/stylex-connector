@@ -11,7 +11,7 @@ connector closes that gap with a manifest file.
 .. include:: StyleXAndBenefits.rst.txt
 
 The build writes ``stylex-manifest.json``. Its ``styles`` object maps a style
-key to a ``className`` and, when available, a per-property class map. TYPO3
+key to a ``className`` and, when available, a compiler conflict map. TYPO3
 loads the manifest and the ViewHelper writes the resolved classes into a
 ``class`` attribute.
 
@@ -41,7 +41,9 @@ What the extension provides
 * ``stylex:class`` resolves base, conditional, and fallback style keys in
   Fluid.
 * A Site Set and TypoScript files can include the optional CSS delivery and
-  cascade-layer settings.
+  standalone stylesheet ordering.
+* An optional maintained static Vite adapter produces versioned manifests.
+* ``stylex:validate`` checks required keys, collisions and declared CSS hashes.
 
 The ViewHelper namespace is registered globally by ``ext_localconf.php``.
 Templates can therefore use ``{stylex:class(...)}`` without declaring the

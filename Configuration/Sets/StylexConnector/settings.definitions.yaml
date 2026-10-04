@@ -21,29 +21,29 @@ settings:
     default: false
 
   StylexConnector.declareCssLayers:
-    label: 'Declare CSS @layer ordering'
-    description: 'Adds @layer bootstrap, stylex, overrides; to the head.'
+    label: 'Deprecated CSS layer switch'
+    description: 'Deprecated, no output. Declare layer order first in your CSS build.'
     category: StylexConnector.css
     type: bool
-    default: true
+    default: false
 
   StylexConnector.cssPriority:
-    label: 'StyleX CSS include priority'
-    description: 'Load priority for StyleX CSS (60 ensures loading after Bootstrap).'
+    label: 'Deprecated StyleX CSS priority'
+    description: 'Deprecated, ignored. TYPO3 has no numeric includeCSS priority.'
     category: StylexConnector.css
     type: int
     default: 60
 
   StylexConnector.bootstrapCssPriority:
-    label: 'Bootstrap CSS include priority'
-    description: 'Adjusted priority for Bootstrap CSS.'
+    label: 'Deprecated Bootstrap CSS priority'
+    description: 'Deprecated, ignored. TYPO3 has no numeric includeCSS priority.'
     category: StylexConnector.css
     type: int
     default: 40
 
   StylexConnector.overrideBootstrapPriority:
-    label: 'Override Bootstrap priority'
-    description: 'Adjust Bootstrap CSS priority so StyleX loads after it.'
+    label: 'Load known Bootstrap CSS first'
+    description: 'Legacy switch: sets forceOnTop for known Bootstrap asset names.'
     category: StylexConnector.css
     type: bool
-    default: true
+    default: false

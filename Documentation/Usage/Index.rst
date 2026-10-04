@@ -70,8 +70,8 @@ How classes are merged
 ======================
 
 Style keys are processed left to right. If style entries contain
-``properties`` maps, a later style key replaces the class for a property used
-by an earlier key. This mirrors the last-key-wins behaviour expected when
+``properties`` maps, a later style key replaces the class for an opaque conflict
+identifier used by an earlier key. Null values remove an earlier winner. This mirrors the last-key-wins behaviour expected when
 composing StyleX styles.
 
 For the manifest in :ref:`the-manifest`, this call produces
@@ -86,3 +86,8 @@ For the manifest in :ref:`the-manifest`, this call produces
 When a manifest entry only has ``className``, the service keeps its individual
 classes and removes duplicates. It cannot infer which CSS properties they
 represent. Generate property maps whenever the build tooling can provide them.
+
+Complete recipes contain finished class lists. Select one recipe for each
+component slot; combining recipes only concatenates and deduplicates classes.
+Dynamic functions that return runtime CSS custom-property values are outside
+this class-only API.

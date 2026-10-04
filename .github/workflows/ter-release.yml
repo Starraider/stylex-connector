@@ -45,7 +45,7 @@ jobs:
         run: |
           "$(composer global config bin-dir --absolute)/tailor" create-artefact "$RELEASE_VERSION" stylex_connector --path=.
           archive="tailor-version-artefact/stylex_connector_${RELEASE_VERSION}.zip"
-          for required in composer.json ext_emconf.php LICENSE CHANGELOG.md; do
+          for required in composer.json ext_emconf.php LICENSE CHANGELOG.md Configuration/Compatibility.php Classes/Service/ManifestReader.php Classes/Command/ValidateCommand.php Resources/Private/Build/stylex-manifest.mjs Resources/Private/Schema/manifest-v2.schema.json; do
             unzip -Z1 "$archive" | grep -Fxq "$required"
           done
           if unzip -Z1 "$archive" | grep -Eq '^(vendor|public|var|Documentation-GENERATED-temp|\.phpunit\.cache|Tests|Build|\.github)/|(^|/)\.env'; then

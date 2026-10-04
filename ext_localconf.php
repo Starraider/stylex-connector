@@ -29,24 +29,6 @@ if (!in_array('Skom\\StylexConnector\\ViewHelpers', $GLOBALS['TYPO3_CONF_VARS'][
     $GLOBALS['TYPO3_CONF_VARS']['SYS']['fluid']['namespaces']['stylex'][] = 'Skom\\StylexConnector\\ViewHelpers';
 }
 
-// -----------------------------------------------------------------------
-// Class aliases for seamless vendor compatibility
-// -----------------------------------------------------------------------
-if (!class_exists(\Skom\StylexConnector\Configuration\StylexRegistry::class, false)) {
-    class_alias(
-        \Vendor\StylexConnector\Configuration\StylexRegistry::class,
-        \Skom\StylexConnector\Configuration\StylexRegistry::class
-    );
-}
-if (!class_exists(\Skom\StylexConnector\Service\StylexManifestService::class, false)) {
-    class_alias(
-        \Vendor\StylexConnector\Service\StylexManifestService::class,
-        \Skom\StylexConnector\Service\StylexManifestService::class
-    );
-}
-if (!class_exists(\Skom\StylexConnector\ViewHelpers\ClassViewHelper::class, false)) {
-    class_alias(
-        \Vendor\StylexConnector\ViewHelpers\ClassViewHelper::class,
-        \Skom\StylexConnector\ViewHelpers\ClassViewHelper::class
-    );
-}
+require_once \TYPO3\CMS\Core\Utility\GeneralUtility::getFileAbsFileName(
+    'EXT:stylex_connector/Configuration/Compatibility.php'
+);

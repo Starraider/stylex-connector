@@ -1,0 +1,77 @@
+[
+  {
+    "keys": [
+      "Parity.base",
+      "Parity.clear"
+    ],
+    "classes": [
+      "x1gslohp",
+      "x9tbk87",
+      "xe8ttls"
+    ]
+  },
+  {
+    "keys": [
+      "Parity.clear",
+      "Parity.base"
+    ],
+    "classes": [
+      "x1e2nbdu",
+      "x1gslohp",
+      "x9tbk87",
+      "xe8ttls"
+    ]
+  },
+  {
+    "keys": [
+      "Parity.base",
+      "Parity.shorthand"
+    ],
+    "classes": [
+      "x1e2nbdu",
+      "x1ghz6dp",
+      "x1gslohp",
+      "x9tbk87",
+      "xe8ttls"
+    ]
+  },
+  {
+    "keys": [
+      "Parity.shorthand",
+      "Parity.base"
+    ],
+    "classes": [
+      "x1e2nbdu",
+      "x1ghz6dp",
+      "x1gslohp",
+      "x9tbk87",
+      "xe8ttls"
+    ]
+  },
+  {
+    "keys": [
+      "Parity.base",
+      "Parity.conditional"
+    ],
+    "classes": [
+      "x1ehdwse",
+      "x1gslohp",
+      "x9tbk87",
+      "xe8ttls",
+      "xju2f9n",
+      "xod0847"
+    ]
+  },
+  {
+    "keys": [
+      "Parity.conditional",
+      "Parity.base"
+    ],
+    "classes": [
+      "x1e2nbdu",
+      "x1gslohp",
+      "x9tbk87",
+      "xe8ttls"
+    ]
+  }
+]

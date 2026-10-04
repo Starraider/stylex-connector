@@ -1,0 +1,19 @@
+{
+  "name": "stylex-connector-build-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test ../../Tests/JavaScript/*.test.mjs",
+    "fixtures": "node ../../Tests/JavaScript/generate-fixtures.mjs"
+  },
+  "dependencies": {
+    "@babel/parser": "7.28.4"
+  },
+  "devDependencies": {
+    "@babel/core": "7.29.7",
+    "@stylexjs/babel-plugin": "0.19.1",
+    "@stylexjs/stylex": "0.19.1",
+    "@stylexjs/unplugin": "0.19.1",
+    "vite": "7.3.6"
+  }
+}

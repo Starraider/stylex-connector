@@ -31,3 +31,6 @@ Thumbs.db
 .vscode/
 *.sublime-project
 *.sublime-workspace
+
+# Optional JavaScript build dependencies
+/Build/JavaScript/node_modules/

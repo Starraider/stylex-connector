@@ -30,7 +30,7 @@ Bootstrap or FSC wins the cascade
 Inspect the element's computed styles and the compiled selector. If Bootstrap
 is unlayered, set ``useCSSLayers: false`` in the StyleX Vite plugin. If the
 project uses named layers, make sure both stylesheets actually use the layer
-order declared by the connector. See :ref:`bootstrap-and-cascade-layers`.
+order declared first in the consuming CSS build. See :ref:`bootstrap-and-cascade-layers`.
 
 Fluid prints the ViewHelper expression
 ======================================

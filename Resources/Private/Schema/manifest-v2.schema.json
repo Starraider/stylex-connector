@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "StyleX Connector static manifest v2",
+  "type": "object",
+  "required": [
+    "version",
+    "styles"
+  ],
+  "properties": {
+    "version": {
+      "const": "2.0"
+    },
+    "producer": {
+      "type": "object"
+    },
+    "compiler": {
+      "type": "object"
+    },
+    "generation": {
+      "type": "string"
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "static-conflicts",
+          "null-clearing"
+        ]
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "sha256"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    },
+    "styles": {
+      "type": "object",
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "kind",
+              "className",
+              "properties"
+            ],
+            "properties": {
+              "kind": {
+                "const": "compiled"
+              },
+              "className": {
+                "type": "string"
+              },
+              "properties": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "kind",
+              "className"
+            ],
+            "properties": {
+              "kind": {
+                "const": "recipe"
+              },
+              "className": {
+                "type": "string"
+              },
+              "properties": {
+                "type": "object",
+                "maxProperties": 0
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

@@ -8,7 +8,9 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
+use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use Vendor\StylexConnector\Configuration\StylexRegistry;
+use Vendor\StylexConnector\Service\ManifestReader;
 use Vendor\StylexConnector\Service\StylexManifestService;
 
 final class StylexManifestServiceTest extends TestCase
@@ -233,5 +235,113 @@ final class StylexManifestServiceTest extends TestCase
 
         $service = new StylexManifestService($cacheManager);
         $service->clearCache();
+    }
+    private function writeManifest(string $file, array $data): string
+    {
+        $path = $this->tempFixtureDir . '/' . $file;
+        file_put_contents($path, json_encode($data));
+        return $path;
+    }
+
+    public function testActualCompilerCompositionMatchesJavascript(): void
+    {
+        foreach (['', '-application-order'] as $suffix) {
+            StylexRegistry::registerManifest(
+                'fixture',
+                dirname(__DIR__, 2) . '/Fixtures/compiler' . $suffix . '-manifest.json'
+            );
+            $service = new StylexManifestService($this->cacheManager);
+            $fixture = dirname(__DIR__, 2) . '/Fixtures/compiler' . $suffix . '-parity.json';
+            $cases = json_decode(file_get_contents($fixture), true);
+            foreach ($cases as $case) {
+                $classes = explode(' ', $service->getClasses(...$case['keys']));
+                sort($classes);
+                self::assertSame($case['classes'], $classes, $suffix . implode(', ', $case['keys']));
+            }
+        }
+    }
+
+    public function testRecipesConcatenateWithoutPropertyResolution(): void
+    {
+        $path = $this->writeManifest('recipes.json', ['version' => '2.0', 'styles' => [
+            'red' => ['kind' => 'recipe', 'className' => 'x-red'],
+            'blue' => ['kind' => 'recipe', 'className' => 'x-blue x-red'],
+        ]]);
+        StylexRegistry::registerManifest('recipes', $path);
+        $service = new StylexManifestService($this->cacheManager);
+        self::assertSame('x-red x-blue', $service->getClasses('red', 'blue'));
+        self::assertTrue($service->hasStyle('red'));
+        self::assertFalse($service->hasStyle('missing'));
+    }
+
+    public function testVersionAndStructuralErrorsHaveUsefulDiagnostics(): void
+    {
+        $reader = new ManifestReader();
+        self::assertSame([], $reader->read('{"version":"999.0","styles":{}}')['styles']);
+        self::assertStringContainsString('Unsupported', $reader->read('{"version":"999.0","styles":{}}')['errors'][0]);
+        self::assertStringContainsString('styles object', $reader->read('{}')['errors'][0]);
+        self::assertStringContainsString('Invalid JSON', $reader->read('{')['errors'][0]);
+        self::assertNotEmpty($reader->read('{"version":"2.0","styles":{"bad":{"className":"x"}}}')['errors']);
+        self::assertSame([], $reader->read('{"version":"2.0","capabilities":["dynamic"],"styles":{}}')['styles']);
+    }
+
+    public function testPersistentCacheTracksContentsAndRegistryAndRetriesMissingFiles(): void
+    {
+        $stored = new \ArrayObject();
+        $cache = self::createStub(FrontendInterface::class);
+        $cache->method('has')->willReturnCallback(static function ($key) use (&$stored) {
+            return isset($stored[$key]);
+        });
+        // Capture by reference so each new service sees the writes from the previous service.
+        $cache->method('get')->willReturnCallback(static function ($key) use (&$stored) {
+            return $stored[$key] ?? false;
+        });
+        $cache->method('set')->willReturnCallback(static function ($key, $data) use (&$stored): void {
+            $stored[$key] = $data;
+        });
+        $manager = self::createStub(CacheManager::class);
+        $manager->method('getCache')->willReturn($cache);
+        $path = $this->writeManifest('cache.json', ['styles' => ['key' => ['className' => 'x-old']]]);
+        $mtime = filemtime($path);
+        StylexRegistry::registerManifest('a', $path);
+        self::assertSame('x-old', (new StylexManifestService($manager))->getClasses('key'));
+        $this->writeManifest('cache.json', ['styles' => ['key' => ['className' => 'x-new']]]);
+        touch($path, $mtime);
+        self::assertSame('x-new', (new StylexManifestService($manager))->getClasses('key'));
+        StylexRegistry::reset();
+        $missing = $this->tempFixtureDir . '/missing.json';
+        StylexRegistry::registerManifest('b', $missing);
+        $before = count($stored);
+        self::assertSame(0, (new StylexManifestService($manager))->getStyleCount());
+        self::assertCount($before, $stored);
+        $this->writeManifest('missing.json', ['styles' => ['other' => ['className' => 'x-other']]]);
+        self::assertSame(['other'], (new StylexManifestService($manager))->getAvailableKeys());
+    }
+
+    public function testFallbackTransitionAndExplicitOverrides(): void
+    {
+        $path = $this->writeManifest('registered.json', ['styles' => ['key' => ['className' => 'x-registered']]]);
+        $fallback = $this->writeManifest('fallback.json', ['styles' => ['key' => ['className' => 'x-fallback']]]);
+        StylexRegistry::registerManifest('site', $path, true);
+        $configuration = self::createStub(ExtensionConfiguration::class);
+        $configuration->method('get')->willReturn(['manifestPath' => $fallback]);
+        $legacy = new StylexManifestService($this->cacheManager, $configuration);
+        self::assertSame('x-fallback', $legacy->getClasses('key'));
+        self::assertSame('collision', $legacy->getReport()['diagnostics'][0]['category']);
+        $configuration = self::createStub(ExtensionConfiguration::class);
+        $configuration->method('get')->willReturn(['manifestPath' => $fallback, 'manifestPathMode' => 'fallback']);
+        $service = new StylexManifestService($this->cacheManager, $configuration);
+        self::assertSame('x-registered', $service->getClasses('key'));
+        self::assertSame([], $service->getReport()['diagnostics']);
+    }
+
+    public function testComposerAliasesWorkWithoutExtensionBootstrap(): void
+    {
+        $alias = new \Skom\StylexConnector\Service\StylexManifestService($this->cacheManager);
+        self::assertInstanceOf(StylexManifestService::class, $alias);
+        self::assertSame(
+            StylexRegistry::getRegisteredManifests(),
+            \Skom\StylexConnector\Configuration\StylexRegistry::getRegisteredManifests()
+        );
     }
 }

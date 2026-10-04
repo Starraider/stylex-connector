@@ -39,14 +39,15 @@
     },
     "autoload": {
         "psr-4": {
-            "Vendor\\StylexConnector\\": "Classes/",
-            "Skom\\StylexConnector\\": "Classes/"
-        }
+            "Vendor\\StylexConnector\\": "Classes/"
+        },
+        "files": [
+            "Configuration/Compatibility.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {
-            "Vendor\\StylexConnector\\Tests\\": "Tests/",
-            "Skom\\StylexConnector\\Tests\\": "Tests/"
+            "Vendor\\StylexConnector\\Tests\\": "Tests/"
         }
     },
     "extra": {

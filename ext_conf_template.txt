@@ -12,3 +12,6 @@ warnOnMissingKeys = 1
 
 # cat=advanced; type=integer; label=LLL:EXT:stylex_connector/Resources/Private/Language/locallang.xlf:extconf.manifestCacheLifetime
 manifestCacheLifetime = 86400
+
+# cat=advanced; type=options[Legacy override=legacyOverride,Lower precedence fallback=fallback]; label=Manifest path precedence: legacyOverride preserves v1 behavior; fallback lets PHP registrations win.
+manifestPathMode = legacyOverride

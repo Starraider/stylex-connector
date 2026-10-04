@@ -65,5 +65,18 @@ jobs:
       - name: Analyze PHP
         run: vendor/bin/phpstan analyse --configuration=phpstan.neon.dist --memory-limit=1G --no-progress
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: Build/JavaScript/package-lock.json
+
+      - name: Verify compiler fixtures and maintained producer
+        run: |
+          npm ci --prefix Build/JavaScript
+          npm run fixtures --prefix Build/JavaScript
+          git diff --exit-code -- Tests/Fixtures
+          npm test --prefix Build/JavaScript
+
       - name: Run unit tests
         run: vendor/bin/phpunit -c phpunit.xml.dist

@@ -12,21 +12,21 @@ plugin.tx_stylexconnector {
         includeCssViaTypoScript = 0
 
         # cat=stylex_connector/basic/30; type=boolean; label=Declare CSS @layer ordering
-        # Adds @layer bootstrap, stylex, overrides; to the head of the StyleX CSS.
+        # Deprecated, no output. Put layer order first in the CSS build.
         # Only relevant when Bootstrap is also loaded.
         declareCssLayers = 0
 
         # cat=stylex_connector/basic/40; type=integer; label=StyleX CSS include priority
-        # Higher priority = loaded later in the HTML head. Bootstrap is typically 10-50.
-        # Set to 60 to ensure StyleX loads after Bootstrap.
+        # Deprecated, ignored. TYPO3 has no numeric includeCSS priority.
+        # Retained for configuration compatibility.
         cssPriority = 60
 
         # cat=stylex_connector/basic/50; type=integer; label=Bootstrap CSS include priority
-        # Only used when overrideBootstrapPriority = 1.
+        # Deprecated, ignored.
         bootstrapCssPriority = 40
 
         # cat=stylex_connector/advanced/10; type=boolean; label=Override Bootstrap priority
-        # When 1, the connector adjusts Bootstrap CSS priority so StyleX loads after it.
+        # Legacy name: sets forceOnTop for known Bootstrap CSS asset names.
         overrideBootstrapPriority = 0
     }
 }

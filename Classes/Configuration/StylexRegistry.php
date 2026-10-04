@@ -25,15 +25,25 @@ final class StylexRegistry
     /** @var array<string, string> extensionKey => absolute or EXT: manifest path */
     private static array $manifests = [];
 
+    private static array $overrides = [];
+
     /**
      * Register a StyleX manifest file for a sitepackage.
      *
      * @param string $extensionKey  The registering extension's key (e.g. 'my_sitepackage')
      * @param string $manifestPath  EXT: path or absolute path to the manifest JSON file
+     * @param bool $allowOverrides Explicitly permit this owner to replace existing style keys.
      */
-    public static function registerManifest(string $extensionKey, string $manifestPath): void
-    {
+    public static function registerManifest(
+        string $extensionKey,
+        string $manifestPath,
+        bool $allowOverrides = false
+    ): void {
+        if (trim($extensionKey) === '' || trim($manifestPath) === '') {
+            throw new \InvalidArgumentException('Manifest owner and path must not be empty.', 1791060002);
+        }
         self::$manifests[$extensionKey] = $manifestPath;
+        self::$overrides[$extensionKey] = $allowOverrides;
     }
 
     /**
@@ -44,6 +54,11 @@ final class StylexRegistry
     public static function getRegisteredManifests(): array
     {
         return self::$manifests;
+    }
+
+    public static function allowsOverrides(string $owner): bool
+    {
+        return self::$overrides[$owner] ?? false;
     }
 
     /**
@@ -59,7 +74,7 @@ final class StylexRegistry
      */
     public static function unregisterManifest(string $extensionKey): void
     {
-        unset(self::$manifests[$extensionKey]);
+        unset(self::$manifests[$extensionKey], self::$overrides[$extensionKey]);
     }
 
     /**
@@ -68,5 +83,6 @@ final class StylexRegistry
     public static function reset(): void
     {
         self::$manifests = [];
+        self::$overrides = [];
     }
 }

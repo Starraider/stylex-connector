@@ -36,8 +36,7 @@ JavaScript before importing it through Vite too. The asset collector call in
 Bootstrap and cascade layers
 ============================
 
-The connector can declare this layer order when ``declareCssLayers`` is
-enabled:
+Put the intended layer order at the beginning of the consuming CSS build:
 
 .. code-block:: css
 
@@ -49,10 +48,9 @@ specificity. A typical Bootstrap import and ``bootstrap_package`` output
 are unlayered, so use ``useCSSLayers: false`` in the StyleX Vite plugin for
 those setups. The base Vite example does this.
 
-Enable StyleX layers and the connector's layer declaration only when the
-project also compiles Bootstrap into ``@layer bootstrap``. Check the emitted
+Enable StyleX layers only when the project also compiles Bootstrap into ``@layer bootstrap``. Check the emitted
 CSS and computed styles before relying on that order. If TYPO3 includes CSS
 through the connector's optional TypoScript path, the
-``overrideBootstrapPriority`` setting affects only the known asset names
+``overrideBootstrapPriority`` compatibility setting uses ``forceOnTop`` for the known asset names
 ``bootstrap``, ``bootstrap_package_bootstrap``, and ``bootstrap_cdn``. See
 :ref:`css-delivery-settings` for all related settings.

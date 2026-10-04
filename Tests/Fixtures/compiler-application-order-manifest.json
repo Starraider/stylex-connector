@@ -1,0 +1,113 @@
+{
+  "version": "2.0",
+  "producer": {
+    "name": "skom/stylex-connector",
+    "version": "2.0"
+  },
+  "compiler": {
+    "name": "@stylexjs/stylex",
+    "version": "0.19.1"
+  },
+  "capabilities": [
+    "static-conflicts",
+    "null-clearing"
+  ],
+  "generation": "1157738e309b3c15f090cf8ea929e10acb410dc8a76c5ccd86df1f0d77c9caa1",
+  "artifacts": [],
+  "styles": {
+    "Parity.base": {
+      "kind": "compiled",
+      "className": "x1e2nbdu xe8ttls x1gslohp x9tbk87",
+      "properties": {
+        "kMwMTN": "x1e2nbdu",
+        "kmVPX3": "xe8ttls",
+        "kg3NbH": null,
+        "kuDDbn": null,
+        "kE3dHu": null,
+        "kP0aTx": null,
+        "kpe85a": null,
+        "k8WAf4": null,
+        "kLKAdn": null,
+        "kGO01o": null,
+        "keoZOQ": "x1gslohp",
+        "kDPRdz": "x9tbk87"
+      }
+    },
+    "Parity.clear": {
+      "kind": "compiled",
+      "className": "",
+      "properties": {
+        "kMwMTN": null
+      }
+    },
+    "Parity.conditional": {
+      "kind": "compiled",
+      "className": "xju2f9n x1ehdwse xod0847",
+      "properties": {
+        "kMwMTN": "xju2f9n x1ehdwse xod0847"
+      }
+    },
+    "Parity.shorthand": {
+      "kind": "compiled",
+      "className": "x1ghz6dp",
+      "properties": {
+        "kogj98": "x1ghz6dp",
+        "kUOVxO": null,
+        "keTefX": null,
+        "koQZXg": null,
+        "k71WvV": null,
+        "km5ZXQ": null,
+        "kqGvvJ": null,
+        "keoZOQ": null,
+        "k1K539": null
+      }
+    },
+    "site/Parity.stylex.styles.base": {
+      "kind": "compiled",
+      "className": "x1e2nbdu xe8ttls x1gslohp x9tbk87",
+      "properties": {
+        "kMwMTN": "x1e2nbdu",
+        "kmVPX3": "xe8ttls",
+        "kg3NbH": null,
+        "kuDDbn": null,
+        "kE3dHu": null,
+        "kP0aTx": null,
+        "kpe85a": null,
+        "k8WAf4": null,
+        "kLKAdn": null,
+        "kGO01o": null,
+        "keoZOQ": "x1gslohp",
+        "kDPRdz": "x9tbk87"
+      }
+    },
+    "site/Parity.stylex.styles.clear": {
+      "kind": "compiled",
+      "className": "",
+      "properties": {
+        "kMwMTN": null
+      }
+    },
+    "site/Parity.stylex.styles.conditional": {
+      "kind": "compiled",
+      "className": "xju2f9n x1ehdwse xod0847",
+      "properties": {
+        "kMwMTN": "xju2f9n x1ehdwse xod0847"
+      }
+    },
+    "site/Parity.stylex.styles.shorthand": {
+      "kind": "compiled",
+      "className": "x1ghz6dp",
+      "properties": {
+        "kogj98": "x1ghz6dp",
+        "kUOVxO": null,
+        "keTefX": null,
+        "koQZXg": null,
+        "k71WvV": null,
+        "km5ZXQ": null,
+        "kqGvvJ": null,
+        "keoZOQ": null,
+        "k1K539": null
+      }
+    }
+  }
+}
