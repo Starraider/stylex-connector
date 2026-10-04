@@ -4,6 +4,10 @@
 StyleX Connector
 ================
 
+.. image:: Images/Extension.svg
+   :alt: StyleX Connector logo
+   :width: 160px
+
 :Extension key:
    stylex_connector
 :Package name:

@@ -1,5 +1,7 @@
 # StyleX Connector for TYPO3
 
+<img src="Documentation/Images/Extension.svg" alt="StyleX Connector logo" width="160" height="160">
+
 StyleX Connector makes classes compiled by [StyleX](https://stylexjs.com/) available in TYPO3 Fluid templates. A sitepackage registers a JSON manifest produced by its frontend build. The `{stylex:class(...)}` ViewHelper composes supported static conflict maps, including null clearing, or looks up complete class recipes. Recipes concatenate without conflict resolution; dynamic class-plus-variable styles need a consumer adapter.
 
 The extension targets TYPO3 12.4, 13.4, and 14.3 or later in the 14.x line. PHP 8.1 is supported with TYPO3 12.4; TYPO3 13.4 and 14.3 require PHP 8.2 or later. The extension currently limits its PHP support to 8.4. It does not compile StyleX source files or serve the generated CSS.
