@@ -1,7 +1,8 @@
 # Changelog
 
-## Unreleased
+## 1.1.2
 
+- Update extension icon and add documentation logos.
 - Preserve compiled null-clearing entries and distinguish static composition from complete recipes.
 - Validate legacy/v2 manifests, expose style existence and owner-aware reports, and add strict `stylex:validate` with required-key and paired-CSS checks.
 - Identify persistent cache entries by ordered registrations and content hashes; avoid caching incomplete loads.
@@ -10,6 +11,7 @@
 - Wire public Site Set settings into CSS conditions, correct ordering controls, retire late layer output, align defaults and apply compression options only to TYPO3 12/13.
 - Harden Fluid inputs and private getter handling; support Composer-only Skom aliases without changing the canonical Vendor namespace.
 - Add actual compiler parity, Fluid rendering, validation and producer lifecycle fixtures.
+- Fix packaging exclusion patterns in `Build/ter-exclude.php` to prevent cache artifacts from entering TER release packages.
 
 
 ## 1.0.0

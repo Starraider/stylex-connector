@@ -19,6 +19,10 @@ composer.lock
 # TYPO3 documentation build artifacts
 /Documentation-GENERATED-temp/
 
+# Tailor release packaging
+/tailor-version-artefact/
+/tailor-version-upload/
+
 # Operating system files
 .DS_Store
 Thumbs.db

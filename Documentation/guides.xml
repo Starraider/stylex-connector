@@ -11,5 +11,5 @@
                edit-on-github-branch="main"
                typo3-core-preferred="14.3"
                interlink-shortcode="skom/stylex-connector" />
-    <project title="StyleX Connector" version="1.0.0" copyright="Sven Kalbhenn" />
+    <project title="StyleX Connector" version="1.1.2" copyright="Sven Kalbhenn" />
 </guides>
