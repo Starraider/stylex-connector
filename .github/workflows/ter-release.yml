@@ -22,13 +22,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup PHP and Tailor
+      - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           extensions: intl, mbstring, pdo_sqlite, simplexml, xml, zip, curl
-          tools: composer:v2, tailor
+          tools: composer:v2
           coverage: none
+
+      - name: Install Tailor
+        run: |
+          composer global require typo3/tailor --no-interaction --prefer-dist
+          echo "$(composer global config bin-dir --absolute)" >> "$GITHUB_PATH"
 
       - name: Check tag and manifests match
         env:
