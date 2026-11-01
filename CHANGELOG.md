@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.3
+
+- Add comprehensive StyleX authoring and styling guide covering tokens, themes, CSS boundaries, and fallback variables.
+- Update Content Blocks documentation with private `src/` directory conventions, unique basenames, and backend preview recommendations.
+- Clarify CSS policy and asset delivery boundaries between StyleX compiler output and CMS-level stylesheets.
+- Update GitHub Actions TER release workflow with tag-based publishing and packaging integrity checks.
+
+
 ## 1.1.2
 
 - Update extension icon and add documentation logos.

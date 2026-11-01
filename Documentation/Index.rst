@@ -13,7 +13,7 @@ StyleX Connector
 :Package name:
    skom/stylex-connector
 :Version:
-   1.1.2
+   1.1.3
 :License:
    GPL-2.0-or-later
 :Repository:

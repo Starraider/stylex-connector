@@ -17,6 +17,8 @@ jobs:
   publish:
     name: Publish Extension to TER
     runs-on: ubuntu-latest
+    env:
+      TYPO3_EXCLUDE_FROM_PACKAGING: ${{ github.workspace }}/Build/ter-exclude.php
     steps:
       - uses: actions/checkout@v4
 
@@ -25,7 +27,7 @@ jobs:
         with:
           php-version: '8.3'
           extensions: intl, mbstring, pdo_sqlite, simplexml, xml, zip, curl
-          tools: composer:v2, typo3/tailor
+          tools: composer:v2, tailor
           coverage: none
 
       - name: Check tag and manifests match
@@ -41,16 +43,30 @@ jobs:
         with:
           node-version: 22
 
-      - name: Verify metadata and StyleX artifacts
+      - name: Verify metadata and compiler fixtures
         run: |
           composer validate --strict
-          node Build/verify-style-ownership.mjs
-          node Build/verify-artifacts.mjs
+          npm ci --prefix Build/JavaScript
+          npm test --prefix Build/JavaScript
+
+      - name: Inspect TER package
+        env:
+          RELEASE_VERSION: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          tailor create-artefact "$RELEASE_VERSION" stylex_connector --path=.
+          archive="tailor-version-artefact/stylex_connector_${RELEASE_VERSION}.zip"
+          for required in composer.json ext_emconf.php LICENSE CHANGELOG.md Configuration/Compatibility.php Classes/Service/ManifestReader.php Classes/Command/ValidateCommand.php Resources/Private/Build/stylex-manifest.mjs Resources/Private/Schema/manifest-v2.schema.json; do
+            unzip -Z1 "$archive" | grep -Fxq "$required"
+          done
+          if unzip -Z1 "$archive" | grep -Eq '^(vendor|public|var|Documentation-GENERATED-temp|\.phpunit\.cache|Tests|Build|\.github)/|(^|/)\.env'; then
+            echo "Release archive contains development files" >&2
+            exit 1
+          fi
 
       - name: Publish to TER
         env:
           TYPO3_API_TOKEN: ${{ secrets.TYPO3_API_TOKEN }}
           RELEASE_VERSION: ${{ github.event.inputs.tag || github.ref_name }}
         run: |
-          test -n "$TYPO3_API_TOKEN"
-          tailor ter:publish "$RELEASE_VERSION" typo3_astryx --comment="Release $RELEASE_VERSION"
+          test -n "$TYPO3_API_TOKEN" || { echo "TYPO3_API_TOKEN secret is not configured in repository settings"; exit 1; }
+          tailor ter:publish "$RELEASE_VERSION" stylex_connector --artefact="tailor-version-artefact/stylex_connector_${RELEASE_VERSION}.zip" --comment="Release $RELEASE_VERSION"
