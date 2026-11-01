@@ -31,6 +31,7 @@ sitepackage registers the JSON manifest created by its frontend build. The
    Introduction/Index
    Installation/Index
    Usage/Index
+   Styling/Index
    Integrations/Index
    Configuration/Index
    Architecture/Index

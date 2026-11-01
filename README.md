@@ -15,6 +15,7 @@ Start with the [installation guide](Documentation/Installation/Index.rst). It co
 - [Vite and asset delivery](Documentation/Installation/Vite.rst)
 - [DDEV development server](Documentation/Installation/Ddev.rst)
 - [Using the ViewHelper](Documentation/Usage/Index.rst)
+- [StyleX authoring, tokens, and themes](Documentation/Styling/Index.rst)
 - [Content Blocks, Fluid Styled Content, and Bootstrap integrations](Documentation/Integrations/Index.rst)
 - [Configuration reference](Documentation/Configuration/Index.rst)
 - [Architecture](Documentation/Architecture/Index.rst)

@@ -6,8 +6,9 @@
 Using the ViewHelper
 ====================
 
-Use semantic manifest keys in the ``class`` attribute. The ViewHelper escapes
-its output for use in HTML attributes.
+Use semantic manifest keys in the class attribute. The ViewHelper escapes
+its output for use in HTML attributes. For source organization, token naming,
+themes and CSS boundaries, see :ref:`stylex-authoring`.
 
 .. code-block:: html
 

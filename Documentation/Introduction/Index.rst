@@ -49,5 +49,5 @@ The ViewHelper namespace is registered globally by ``ext_localconf.php``.
 Templates can therefore use ``{stylex:class(...)}`` without declaring the
 namespace themselves.
 
-For StyleX authoring details, read the `StyleX documentation
-<https://stylexjs.com/>`_.
+For source organization, token naming, themes and CSS boundaries, see
+:ref:`stylex-authoring`. For the StyleX API, read the `StyleX documentation <https://stylexjs.com/>`_.

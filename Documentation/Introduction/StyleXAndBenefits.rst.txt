@@ -6,15 +6,16 @@ StyleX is a compile-time CSS-in-JS library developed by Meta (Facebook) and depl
 The Core Concept
 ----------------
 
-Instead of writing CSS classes or SCSS selector trees, you author styles using typed JavaScript objects. A build-time compiler (via Babel or unplugin/Vite) transforms these objects into **atomic CSS rules**. Exactly one CSS class per unique CSS property-value combination. It replaces the JavaScript style references with pre-calculated class name strings.
+Instead of writing CSS classes or SCSS selector trees, you author styles using JavaScript objects. A build-time compiler (via Babel or unplugin/Vite) transforms supported style declarations into reusable **atomic CSS rules**. The compiler also produces metadata used by StyleX APIs and, in TYPO3, by a compatible Connector manifest producer. Do not depend on generated class names in templates or source code.
 
 There is **zero runtime style injection** in the browser. The output is a standard static ``.css`` file.
 
 .. code-block:: javascript
 
-   // What you write (Nav.stylex.js):
+   // What you write (components/nav.stylex.js):
    import * as stylex from '@stylexjs/stylex';
-   import { colors, spacing } from './tokens.stylex.js';
+   import { colors } from '../tokens/color-tokens.stylex.js';
+   import { spacing } from '../tokens/spacing-tokens.stylex.js';
 
    export const styles = stylex.create({
      link: {
@@ -53,62 +54,83 @@ Deterministic, Conflict-Free Styling
 * **The Problem with Traditional CSS/SCSS:** The cascade and specificity create implicit ordering dependencies. Adding a class in one SCSS file can unexpectedly override or be overridden by rules in another file based purely on stylesheet order or selector specificity. Furthermore, developers and AI coding assistants alike frequently fail to take the load or bundling order of separate CSS/SCSS files into account, leading to component styles that are quietly and unintentionally overridden by other styles.
 * **What StyleX Solves:** Every CSS property maps to an atomic class with identical specificity (a single class selector). When two style definitions declare conflicting values for the same property, the last applied style strictly wins. Import order and stylesheet load order no longer dictate which rule applies, completely eliminating specificity battles, silent cascade overrides, and ``!important`` hacks.
 
-Atomic CSS — Logarithmic Growth
--------------------------------
+Atomic CSS and token reuse
+--------------------------
 
-* **The Problem with Traditional CSS:** In traditional SCSS/CSS architectures, as the number of site components grows, the size of the CSS bundle increases linearly. A site with 60 content elements can easily exceed hundreds of kilobytes of redundant CSS.
-* **What StyleX Solves:** Atomic CSS deduplicates every CSS declaration across the entire project. If 40 components use ``padding: 1rem;`` or ``border-radius: 4px;``, exactly **one** CSS rule is generated in the bundle.
-* **Result:** While traditional CSS grows linearly (``O(n)``), StyleX bundle growth flattens logarithmically (``O(log n)``) because the number of distinct property-value combinations in a design system is naturally bounded.
+StyleX compiles declared styles into atomic CSS and deduplicates equivalent
+declarations across the build. CSS size follows the unique rules the project
+uses; it is not tied one-to-one to the number of source files or components.
+Do not rely on a fixed growth curve. Keep styles statically discoverable and
+import only the recipes needed by the relevant entrypoint.
 
-.. code-block:: text
+Design tokens and themes
+------------------------
 
-   Traditional SCSS:    10 components  ->  12 KB CSS
-                        50 components  ->  60 KB CSS
-                       100 components  -> 120 KB CSS (linear growth)
-
-   StyleX Atomic CSS:   10 components  ->   5 KB CSS
-                        50 components  ->   9 KB CSS
-                       100 components  ->  11 KB CSS (logarithmic growth)
-
-Typed, Centralized Design Token System (``defineVars``)
---------------------------------------------------------
-
-* **The Problem Today:** Design values (colors, spacing, typography) are often duplicated across SCSS variables, Bootstrap variables, TypoScript constants, and inline styles. Changing a brand color requires synchronizing multiple files.
-* **What StyleX Solves:** Design tokens are authored once using ``stylex.defineVars()``:
+Use ``stylex.defineVars()`` for values that need to vary by theme or runtime
+scope. Keep token families in separate, named ``.stylex.js`` modules, then
+import the exported variable groups into recipes. StyleX's API abstracts the
+generated CSS variable identifiers; consume variables through their exports
+instead of hardcoding generated names.
 
 .. code-block:: javascript
 
-   // tokens.stylex.js — Single Source of Truth
+   // tokens/color-tokens.stylex.js
    import * as stylex from '@stylexjs/stylex';
 
    export const colors = stylex.defineVars({
-     primary: '#ff8700',
-     primarySubtle: '#ffcc99',
-     bodyText: '#212529',
+     textPrimary: '#212529',
+     textInverse: '#ffffff',
+     accent: '#ff8700',
      surface: '#ffffff',
    });
 
+.. code-block:: javascript
+
+   // tokens/spacing-tokens.stylex.js
+   import * as stylex from '@stylexjs/stylex';
+
    export const spacing = stylex.defineVars({
-     sm: '0.5rem',
-     md: '1rem',
-     lg: '1.5rem',
+     compact: '0.5rem',
+     normal: '1rem',
+     spacious: '1.5rem',
    });
 
-* **Compiled Output:** StyleX transforms this into globally available CSS Custom Properties:
+Import those tokens into component recipes rather than copying values. Use
+``stylex.defineConsts()`` for shared values that are not themeable. Create
+component-specific token groups only when they form a deliberate reusable
+contract; keep one-off layout values in the recipe that uses them.
 
-.. code-block:: css
+Use ``stylex.createTheme()`` to override token groups for a named theme.
+Keep theme identity separate from color mode: a brand theme such as ``ocean``
+can support both light and dark modes, while mode describes the color-scheme
+variant. Use semantic token names such as ``textPrimary`` rather than names
+that encode a theme or mode.
 
-   :root {
-     --colors-primary: #ff8700;
-     --colors-primarySubtle: #ffcc99;
-     --colors-bodyText: #212529;
-     --colors-surface: #ffffff;
-     --spacing-sm: 0.5rem;
-     --spacing-md: 1rem;
-     --spacing-lg: 1.5rem;
-   }
+.. code-block:: javascript
 
-Any typo in token usage is caught at **compile time** by JavaScript/TypeScript, never failing silently in the browser.
+   // themes/ocean-theme.stylex.js
+   import * as stylex from '@stylexjs/stylex';
+   import { colors } from '../tokens/color-tokens.stylex.js';
+
+   export const oceanTheme = stylex.createTheme(colors, {
+     accent: '#006b91',
+     surface: '#f3fbff',
+   });
+
+Theme overrides may be sparse when omitted values inherit from a parent
+theme. Check every independently themed subtree and nested theme boundary so
+all consumed variables resolve to the intended values. If a surface can
+render outside its normal parent, provide a complete set of needed values or
+a safe default.
+
+The connector resolves manifest keys; it does not infer keys from token or
+theme source files. A theme class used in server-rendered Fluid must be present
+in the manifest, for example as ``theme.ocean``. The maintained Vite adapter
+documents static compiled ``stylex.create()`` styles; check whether the
+selected manifest producer also exports ``createTheme()`` classes. If it
+does not, add a consumer adapter that emits semantic theme keys or apply the
+theme in a JavaScript-owned surface. Validate theme keys with
+``stylex:validate``.
 
 Dead Style Elimination
 ----------------------
@@ -118,7 +140,7 @@ Because all style rules are imported and referenced as ES modules in JavaScript,
 Style Encapsulation Without a Component Framework
 -------------------------------------------------
 
-In vanilla CSS/SCSS, avoiding unintended leaks requires strict BEM naming conventions (``.c-card__title--featured``) or CSS modules. StyleX classes are content-hashed and scoped to their authoring module. Styles in ``Nav.stylex.js`` cannot accidentally bleed into ``Footer.stylex.js``.
+StyleX does not provide CSS-Module-style selector scoping: generated class selectors exist in the shared stylesheet. Encapsulation comes from applying the generated classes only to the intended elements and composing styles through StyleX. Keep generated class strings out of templates, and do not treat a recipe module as a selector namespace. See :ref:`stylex-authoring` for source and key naming.
 
 Conditional Styling via Pure Logic
 ----------------------------------
@@ -247,27 +269,27 @@ StyleX Benefits for TYPO3 Content Blocks
 
 The **TYPO3 Content Blocks** initiative (``friendsoftypo3/content-blocks`` / TYPO3 Core Content Blocks in v14) provides a declarative, directory-based format for structuring custom content elements. While Content Blocks conventionally loads individual ``frontend.css`` files via ``<f:asset.css>``, combining Content Blocks with StyleX via ``EXT:stylex_connector`` elevates the architecture to enterprise-grade web performance.
 
-Zero Extra HTTP Requests & Single Atomic Bundle
-------------------------------------------------
+Shared StyleX CSS for Content Blocks
+------------------------------------
 
-In traditional Content Block development, every distinct content element placed on a page registers its own stylesheet using:
+A traditional Content Block can register a stylesheet using:
 
 .. code-block:: html
 
    <f:asset.css identifier="cb-quote" href="{cb:assetPath()}/frontend.css" />
 
-On a content-rich landing page featuring 8 distinct Content Blocks (Hero, Teasers, Accordion, Quote, Gallery, CTA, Timeline, Form), the browser receives 8 additional ``<link rel="stylesheet">`` tags in the document ``<head>``, creating a fragmented network waterfall.
+If every block registers its own stylesheet, a page with many different blocks may include several CSS assets.
 
-**The StyleX Advantage:**
+**The StyleX approach:**
 
-* StyleX compiles all Content Block ``.stylex.js`` files into the sitepackage's central atomic CSS bundle at build time.
-* The Content Block's ``templates/frontend.fluid.html`` references styles via ``{stylex:class(styles: 'Quote.root')}`` without any ``<f:asset.css>`` call.
-* **Result:** **Zero extra HTTP requests per content element**, maximizing Core Web Vitals (LCP, FCP).
+* Import the required Content Block ``.stylex.js`` recipes into an appropriate Vite entry and emit their compiled rules through the project's shared CSS delivery path.
+* Have Fluid reference manifest keys such as ``{stylex:class(styles: 'quote.root')}``; do not add a per-block CSS include for those StyleX rules.
+* The actual number of requests depends on the configured build and asset delivery. A shared bundle can reduce stylesheet fragmentation, but StyleX alone does not guarantee a particular request count.
 
-Logarithmic CSS Scaling Across 50+ Custom Elements
----------------------------------------------------
+Atomic CSS reuse across components
+-----------------------------------
 
-In conventional SCSS/CSS architectures, as an agency or enterprise site grows from 10 to 60+ custom Content Blocks, total CSS volume increases linearly (``O(N)``). Multiple Content Blocks declare repetitive rules:
+StyleX can reuse identical compiled declarations across recipes. The final CSS size depends on the distinct declarations, variants, selectors and build entries required by the application. Avoid predicting a fixed linear or logarithmic growth curve. Multiple Content Blocks may use repeated declarations such as:
 
 * Card, Testimonial, and Teaser all define ``padding: 1.5rem;``
 * Hero, Banner, and FeatureGrid all define ``display: flex; align-items: center;``
@@ -275,9 +297,9 @@ In conventional SCSS/CSS architectures, as an agency or enterprise site grows fr
 
 **The StyleX Advantage:**
 
-* Atomic CSS generates **exactly one atomic utility class** per unique CSS declaration across the entire project.
-* A site with 60 Content Blocks generates nearly the same atomic CSS bundle size as a site with 15 blocks (``O(log N)`` growth curve).
-* Adding new Content Blocks incurs negligible CSS payload overhead.
+* Repeated declarations can share compiled atomic rules within the same delivered build output.
+* New blocks still add CSS when they introduce new declarations, variants or responsive states.
+* Measure the production bundle rather than assuming that adding blocks has negligible cost.
 
 Strict Brand & Design Token Adherence
 -------------------------------------
@@ -291,23 +313,26 @@ Independent Content Block CSS files are notorious for design drift: developers c
   .. code-block:: javascript
 
      import * as stylex from '@stylexjs/stylex';
-     import { colors, spacing, typography } from '../../../../Resources/Private/JavaScript/DesignSystem/tokens.stylex.js';
+     import { colors } from '../../../../Resources/Private/JavaScript/StyleX/tokens/color-tokens.stylex.js';
+     import { spacing } from '../../../../Resources/Private/JavaScript/StyleX/tokens/spacing-tokens.stylex.js';
+     import { shape } from '../../../../Resources/Private/JavaScript/StyleX/tokens/shape-tokens.stylex.js';
+     import { typography } from '../../../../Resources/Private/JavaScript/StyleX/tokens/typography-tokens.stylex.js';
 
      export const styles = stylex.create({
        root: {
          backgroundColor: colors.surface,
-         padding: spacing.lg,
-         borderRadius: spacing.radiusMd,
+         padding: spacing.spacious,
+         borderRadius: shape.radiusMedium,
        },
        title: {
-         fontFamily: typography.fontSans,
+         fontFamily: typography.fontFamily,
          fontSize: typography.sizeXl,
-         color: colors.primary,
+         color: colors.accent,
        },
      });
 
 * **Compile-Time Validation:** Any mistyped token (``colors.primry``) or invalid CSS property is flagged immediately during ``npm run build`` or ``ddev vite``.
-* **Instant Rebranding:** Updating a single token in ``tokens.stylex.js`` automatically propagates across all 50+ Content Blocks across the site.
+* **Consistent rebranding:** Updating a shared semantic token updates recipes that consume it after the relevant build output is regenerated.
 
 Deterministic Variant Composition in Fluid
 ------------------------------------------
