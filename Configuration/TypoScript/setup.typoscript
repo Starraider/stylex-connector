@@ -1,7 +1,7 @@
 # Vite consumers should let their entrypoint own CSS delivery.
 config.fluid.namespace.stylex = Vendor\StylexConnector\ViewHelpers
 
-[{$plugin.tx_stylexconnector.settings.includeCssViaTypoScript} == 1]
+["{$plugin.tx_stylexconnector.settings.includeCssViaTypoScript}" == "1"]
     page.includeCSS {
         stylex_connector = {$plugin.tx_stylexconnector.settings.cssFilePath}
         stylex_connector {
@@ -12,14 +12,14 @@ config.fluid.namespace.stylex = Vendor\StylexConnector\ViewHelpers
 [END]
 
 # TYPO3 12/13 still support these optimization controls. TYPO3 14 removed them.
-[{$plugin.tx_stylexconnector.settings.includeCssViaTypoScript} == 1 && typo3.version < 14]
+["{$plugin.tx_stylexconnector.settings.includeCssViaTypoScript}" == "1" && typo3.version < 14]
     page.includeCSS.stylex_connector.disableCompression = 1
     page.includeCSS.stylex_connector.excludeFromConcatenation = 1
 [END]
 
 # Compatibility switch: uses the real forceOnTop mechanism for known Bootstrap
 # assets. Numeric cssPriority/bootstrapCssPriority never established head order.
-[{$plugin.tx_stylexconnector.settings.overrideBootstrapPriority} == 1]
+["{$plugin.tx_stylexconnector.settings.overrideBootstrapPriority}" == "1"]
     page.includeCSS.bootstrap.forceOnTop = 1
     page.includeCSS.bootstrap_package_bootstrap.forceOnTop = 1
     page.includeCSS.bootstrap_cdn.forceOnTop = 1
